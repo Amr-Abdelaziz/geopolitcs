@@ -299,3 +299,47 @@ class ApprovalAction(BaseModel):
     action: str = Field(description="approve | reject | request_changes")
     reviewer: str
     notes: Optional[str] = None
+
+
+# --- MiroFish & Swarm Wargame Simulation Schemas ---
+
+class WargameActor(BaseModel):
+    id: str
+    name_ar: str
+    name_en: str
+    faction_type: str  # military, political, tribal, non_state, foreign_power
+    objectives: str
+    posture: str = "defensive"  # offensive, defensive, opportunistic, mediator
+    leverage: str
+
+
+class SimulationRound(BaseModel):
+    round_number: int
+    title: str
+    escalation_level: str  # low, elevated, high, critical
+    actor_moves: List[Dict[str, str]] = Field(default_factory=list)
+    key_developments_ar: str
+
+
+class WargameRequest(BaseModel):
+    research_question: str
+    reference_country: str = "Egypt"
+    target_countries: List[str] = Field(default_factory=lambda: ["Egypt", "Libya", "Israel"])
+    rounds_count: int = 3
+    god_view_intervention: Optional[str] = None  # Optional policy variable (e.g. "إعلان منطقة عازلة")
+    use_live_web_evidence: bool = True
+
+
+class WargameSimulationResult(BaseModel):
+    id: str
+    research_question: str
+    engine: str = "mirofish_bridge"  # mirofish_live | mirofish_bridge
+    status: str = "completed"
+    seed_evidence_count: int = 0
+    god_view_intervention: Optional[str] = None
+    actors: List[WargameActor] = Field(default_factory=list)
+    rounds: List[SimulationRound] = Field(default_factory=list)
+    emergent_outcomes: List[str] = Field(default_factory=list)
+    probability_distribution: Dict[str, float] = Field(default_factory=dict)
+    red_team_vulnerabilities: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=utc_now)

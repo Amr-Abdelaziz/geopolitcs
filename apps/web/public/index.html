@@ -174,13 +174,94 @@
                 <option value="scenario_analysis">استشراف وسيناريوهات مستقبلية</option>
               </select>
             </div>
-            <div class="flex items-end">
-              <button id="btn-run-assessment" onclick="runAssessment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-150 shadow-lg shadow-emerald-950">
+            <div class="flex flex-col sm:flex-row gap-2 items-end">
+              <button id="btn-run-assessment" onclick="runAssessment()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition duration-150 shadow-lg shadow-emerald-950 text-xs">
                 <span id="run-spinner" class="hidden animate-spin">🌀</span>
                 <span>إطلاق التحليل الاستراتيجي</span>
               </button>
+              <button id="btn-run-wargame" onclick="runWargameSimulation()" class="flex-1 bg-purple-700 hover:bg-purple-600 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition duration-150 shadow-lg shadow-purple-950 text-xs" title="محاكاة الأطراف المتنافسة وفق نموذج MiroFish Swarm">
+                <span id="wargame-spinner" class="hidden animate-spin">🎲</span>
+                <span>🎲 مناورة MiroFish (Wargame)</span>
+              </button>
             </div>
           </div>
+
+          <!-- God-View Policy Intervention (Optional) -->
+          <div class="pt-2 border-t border-gray-800/60">
+            <label class="block text-[11px] text-gray-400 mb-1 flex items-center gap-1.5 font-mono">
+              <span class="text-purple-400">⚡ متغير تدخلي للمحاكاة (MiroFish God-View Intervention - اختياري):</span>
+              <span class="text-gray-500 text-[10px]">اختبر سيناريو "ماذا لو اتخذت القيادة قراراً معيناً؟"</span>
+            </label>
+            <input id="input-god-intervention" type="text" placeholder="مثال: إعلان منطقة عازلة وتكثيف الدوريات المشتركة، أو تعديل شروط اتفاقية الطاقة..." class="w-full bg-gray-900/80 border border-gray-800 rounded px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-purple-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- MiroFish Wargame Simulation Panel -->
+      <div id="wargame-results-panel" class="hidden glass-panel rounded-xl p-5 border border-purple-900/60 space-y-5 bg-purple-950/10">
+        <div class="flex flex-wrap justify-between items-center gap-3 border-b border-purple-900/40 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-purple-900/60 text-purple-300 border border-purple-700">
+                MiroFish Swarm Simulation
+              </span>
+              <span id="wargame-id-label" class="text-xs font-mono text-gray-400">ID: WARGAME-0000</span>
+            </div>
+            <h3 id="wargame-title" class="text-base font-bold text-white mt-1"></h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="wargame-engine-badge" class="px-2 py-0.5 rounded text-[11px] font-mono text-cyan-300 bg-cyan-950/80 border border-cyan-800">
+              Engine: MiroFish Bridge (Claude Haiku 5.5)
+            </span>
+            <button onclick="document.getElementById('wargame-results-panel').classList.add('hidden')" class="text-gray-400 hover:text-white text-sm px-2">✕</button>
+          </div>
+        </div>
+
+        <!-- Simulated Factions / Actors -->
+        <div>
+          <h4 class="text-xs font-bold text-purple-300 mb-2 flex items-center gap-1.5 font-mono">
+            <span>👥 الأطراف الفاعلة المحاكاة في الساحة (Simulated Stakeholders & Factions)</span>
+          </h4>
+          <div id="wargame-actors-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Multi-Round Timeline -->
+        <div>
+          <h4 class="text-xs font-bold text-cyan-300 mb-2 flex items-center gap-1.5 font-mono">
+            <span>⚔️ جولات التفاعل والمناورة (Simulation Rounds & Dynamic Moves)</span>
+          </h4>
+          <div id="wargame-rounds-container" class="space-y-3">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Emergent Outcomes & Probabilities Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-purple-900/40">
+          <div class="glass-panel p-4 rounded-xl border border-gray-800">
+            <h4 class="text-xs font-bold text-amber-300 mb-2 font-mono">🔮 النتائج الانبثاقية الحاكمة (Emergent Outcomes)</h4>
+            <ul id="wargame-emergent-list" class="space-y-1.5 text-xs text-gray-300 list-disc list-inside leading-relaxed">
+              <!-- Injected via JS -->
+            </ul>
+          </div>
+
+          <div class="glass-panel p-4 rounded-xl border border-gray-800">
+            <h4 class="text-xs font-bold text-emerald-400 mb-2 font-mono">📊 مصفوفة احتمالات السيناريوهات (Branching Probabilities)</h4>
+            <div id="wargame-probabilities-container" class="space-y-2">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Red Team Critical Vulnerabilities from Wargame -->
+        <div class="p-3.5 rounded-xl bg-rose-950/20 border border-rose-900/60 text-xs">
+          <h4 class="text-xs font-bold text-rose-300 mb-1 flex items-center gap-1.5 font-mono">
+            <span>🛡️ ثغرات الفريق الأحمر التي كشفتها المحاكاة (Wargame Vulnerabilities & Blind Spots)</span>
+          </h4>
+          <ul id="wargame-vulnerabilities-list" class="space-y-1 text-gray-300 list-disc list-inside">
+            <!-- Injected via JS -->
+          </ul>
         </div>
       </div>
 
@@ -836,6 +917,125 @@
         document.getElementById('btn-run-assessment').disabled = false;
         document.getElementById('run-spinner').classList.add('hidden');
       }
+    }
+
+    async function runWargameSimulation() {
+      const question = document.getElementById('input-question').value.trim();
+      if (!question) {
+        alert("يرجى إدخال موضوع أو سؤال المحاكاة أولاً.");
+        return;
+      }
+
+      const refCountry = document.getElementById('select-reference-country').value;
+      const intervention = document.getElementById('input-god-intervention').value.trim();
+
+      const btn = document.getElementById('btn-run-wargame');
+      const spinner = document.getElementById('wargame-spinner');
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+
+      const panel = document.getElementById('wargame-results-panel');
+      panel.classList.remove('hidden');
+      document.getElementById('wargame-title').textContent = question;
+      document.getElementById('wargame-actors-grid').innerHTML = '<div class="text-xs text-purple-400 py-4 col-span-3 text-center animate-pulse">🎲 جاري استدعاء محرك MiroFish وبناء الأطراف المتنافسة ومحاكاة الجولات التفاعلية...</div>';
+      document.getElementById('wargame-rounds-container').innerHTML = '';
+      document.getElementById('wargame-emergent-list').innerHTML = '';
+      document.getElementById('wargame-probabilities-container').innerHTML = '';
+      document.getElementById('wargame-vulnerabilities-list').innerHTML = '';
+
+      panel.scrollIntoView({ behavior: 'smooth' });
+
+      try {
+        const res = await fetch('/api/simulation/wargame', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            research_question: question,
+            reference_country: refCountry,
+            target_countries: ["Egypt", "Libya", "Israel"],
+            rounds_count: 3,
+            god_view_intervention: intervention || null,
+            use_live_web_evidence: true
+          })
+        });
+
+        if (!res.ok) throw new Error("فشلت عملية المحاكاة: " + res.status);
+        const data = await res.json();
+        displayWargameResult(data);
+      } catch (err) {
+        alert("خطأ أثناء تشغيل محاكاة MiroFish: " + err.message);
+        panel.classList.add('hidden');
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+      }
+    }
+
+    function displayWargameResult(data) {
+      document.getElementById('wargame-id-label').textContent = `ID: ${data.id}`;
+      document.getElementById('wargame-engine-badge').textContent = `Engine: ${data.engine} (${data.seed_evidence_count} Seed Evidences)`;
+
+      // 1. Actors
+      const actorsGrid = document.getElementById('wargame-actors-grid');
+      actorsGrid.innerHTML = data.actors.map(a => `
+        <div class="glass-panel p-3 rounded-lg border border-purple-800/60 bg-gray-900/80 text-xs">
+          <div class="flex justify-between items-center mb-1">
+            <span class="font-mono font-bold text-purple-400 px-1.5 py-0.2 rounded bg-purple-950 border border-purple-800 text-[10px]">${a.id}</span>
+            <span class="px-1.5 py-0.2 rounded text-[10px] bg-gray-800 text-gray-300 font-mono">${a.posture}</span>
+          </div>
+          <h5 class="font-bold text-gray-100 text-xs">${a.name_ar}</h5>
+          <span class="text-[10px] text-gray-400 block mb-1">${a.name_en}</span>
+          <p class="text-gray-300 text-[11px] mb-1.5"><strong>الهدف:</strong> ${a.objectives}</p>
+          <p class="text-gray-400 text-[10px] border-t border-gray-800 pt-1"><strong>أوراق الضغط:</strong> ${a.leverage}</p>
+        </div>
+      `).join('');
+
+      // 2. Rounds
+      const roundsContainer = document.getElementById('wargame-rounds-container');
+      roundsContainer.innerHTML = data.rounds.map(r => `
+        <div class="p-3.5 rounded-lg bg-gray-900 border border-gray-800 text-xs space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-cyan-300 text-xs font-mono">الجولة ${r.round_number}: ${r.title}</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.escalation_level === 'critical' ? 'bg-rose-900 text-rose-200' : 'bg-amber-900/60 text-amber-300'} font-mono uppercase">
+              Escalation: ${r.escalation_level}
+            </span>
+          </div>
+          <p class="text-gray-200 text-xs leading-relaxed">${r.key_developments_ar}</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+            ${r.actor_moves.map(m => `
+              <div class="bg-gray-950/80 p-2 rounded border border-gray-800 text-[11px]">
+                <span class="font-bold text-purple-400 font-mono">${m.actor}:</span>
+                <span class="text-gray-300 mr-1">${m.move}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      // 3. Emergent Outcomes
+      const emergentList = document.getElementById('wargame-emergent-list');
+      emergentList.innerHTML = data.emergent_outcomes.map(o => `<li>${o}</li>`).join('');
+
+      // 4. Probabilities
+      const probContainer = document.getElementById('wargame-probabilities-container');
+      probContainer.innerHTML = Object.entries(data.probability_distribution).map(([scenario, prob]) => {
+        const pct = Math.round(prob * 100);
+        return `
+          <div>
+            <div class="flex justify-between items-center text-xs mb-1">
+              <span class="text-gray-200">${scenario}</span>
+              <span class="font-mono font-bold text-emerald-400">${pct}%</span>
+            </div>
+            <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
+              <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 5. Red Team Vulnerabilities
+      const vulnList = document.getElementById('wargame-vulnerabilities-list');
+      vulnList.innerHTML = data.red_team_vulnerabilities.map(v => `<li>${v}</li>`).join('');
     }
 
     function displayAssessment(a) {

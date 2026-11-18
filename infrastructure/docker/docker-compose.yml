@@ -15,6 +15,7 @@ services:
       - SITE_URL=${SITE_URL:-https://osiris.yourdomain.com}
       - APP_NAME=Strategic OSIRIS Intelligence Platform
       - OSIRIS_URL=${OSIRIS_URL:-http://localhost:3000}
+      - MIROFISH_URL=${MIROFISH_URL:-http://mirofish:5001}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-osiris}:${POSTGRES_PASSWORD:-secret}@postgres:5432/${POSTGRES_DB:-strategic_osiris}
       - REDIS_URL=redis://redis:6379/0
     depends_on:
@@ -68,6 +69,22 @@ services:
       - ../nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - api
+    networks:
+      - osiris-net
+
+  # MiroFish Multi-Agent Swarm Prediction & Wargame Simulation Engine
+  mirofish:
+    image: 666ghj/mirofish:latest
+    container_name: strategic-osiris-mirofish
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+      - "3000:3000"
+    environment:
+      - LLM_API_KEY=${OPENROUTER_API_KEY:-}
+      - LLM_BASE_URL=https://openrouter.ai/api/v1
+      - LLM_MODEL_NAME=anthropic/claude-haiku-5.5
+      - ZEP_API_KEY=${ZEP_API_KEY:-}
     networks:
       - osiris-net
 

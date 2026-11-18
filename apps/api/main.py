@@ -28,16 +28,20 @@ from packages.schemas.models import (
     DocumentEvidence,
     RECOMMENDED_MODELS,
     StrategicAssessment,
+    WargameRequest,
+    WargameSimulationResult,
 )
 from packages.storage.database import DatabaseManager
 from services.orchestrator.pipeline import StrategicPipeline
 from services.reporting.generator import ReportGenerator
+from services.simulation.mirofish_client import MiroFishClient
 from contextlib import asynccontextmanager
 from services.warning.indicator_engine import IndicatorEngine
 from services.warning.radar_daemon import RadarDaemon
 
 db = DatabaseManager()
 pipeline = StrategicPipeline(db=db)
+mirofish_client = MiroFishClient(llm_client=pipeline.llm)
 indicator_engine = IndicatorEngine()
 radar_daemon = RadarDaemon(
     osiris_client=pipeline.collector.client,
@@ -334,6 +338,26 @@ async def dismiss_alert(alert_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Alert not found")
     return {"status": "dismissed", "alert_id": alert_id}
+
+
+# --- MiroFish Multi-Agent Wargaming & Swarm Simulation ---
+
+@app.get("/api/simulation/status")
+async def get_simulation_status():
+    """Return status of MiroFish wargaming engine (online container or native bridge)."""
+    return await mirofish_client.check_status()
+
+
+@app.post("/api/simulation/wargame", response_model=WargameSimulationResult)
+async def run_wargame_simulation(request: WargameRequest) -> WargameSimulationResult:
+    """Execute a deep multi-actor wargame simulation with emergent behavior modeling."""
+    evidence = []
+    if request.use_live_web_evidence:
+        evidence = await pipeline.collector.collect_for_topic(
+            research_question=request.research_question,
+            target_countries=request.target_countries
+        )
+    return await mirofish_client.run_simulation(request=request, evidence_list=evidence)
 
 
 # Mount web dashboard if available
