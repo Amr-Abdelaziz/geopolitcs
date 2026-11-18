@@ -109,6 +109,9 @@
     <button onclick="switchTab('agents-roster')" id="tab-btn-agents-roster" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
       <span>🤖 الوكلاء الأربعة عشر (Agents Roster)</span>
     </button>
+    <button onclick="switchTab('knowledge-graph')" id="tab-btn-knowledge-graph" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
+      <span>🕸️ شبكة المعرفة (Knowledge Graph)</span>
+    </button>
   </nav>
 
   <!-- Main Container -->
@@ -225,6 +228,17 @@
           <div id="wargame-actors-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <!-- Injected via JS -->
           </div>
+        </div>
+
+        <!-- Dynamic Wargame Knowledge Graph Visualization -->
+        <div class="glass-panel p-4 rounded-xl border border-purple-800/60 bg-gray-950/80">
+          <div class="flex justify-between items-center mb-2">
+            <h4 class="text-xs font-bold text-purple-300 flex items-center gap-1.5 font-mono">
+              <span>🕸️ شبكة المعرفة وخريطة العلاقات المحاكاة (MiroFish Knowledge Graph)</span>
+            </h4>
+            <span class="text-[10px] text-gray-400 font-mono">Interactive Swarm Graph • Dynamic Physics</span>
+          </div>
+          <canvas id="wargame-knowledge-graph-canvas" class="w-full h-72 rounded-lg cursor-grab active:cursor-grabbing border border-gray-800/80 bg-gray-950"></canvas>
         </div>
 
         <!-- Multi-Round Timeline -->
@@ -536,6 +550,87 @@
       </div>
     </section>
 
+    <!-- TAB 5: KNOWLEDGE GRAPH -->
+    <section id="tab-knowledge-graph" class="hidden space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>🕸️ شبكة المعرفة والاستخبارات المكانية (Geopolitical Knowledge Graph)</span>
+          </h2>
+          <p class="text-xs text-gray-400">خريطة تفاعلية مدعومة بمحرك MiroFish تربط مراكز القيادة العسكرية، المعابر الحاكمة، حقول الطاقة، وبؤر التهديد الإقليمية</p>
+        </div>
+        
+        <!-- Controls & Filter Toolbar -->
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1 text-[11px]">
+            <button onclick="filterMainGraph('all')" id="kg-btn-all" class="kg-filter-btn px-2.5 py-1 rounded bg-emerald-600 text-white font-bold" data-filter="all">الكل</button>
+            <button onclick="filterMainGraph('actor')" id="kg-btn-actor" class="kg-filter-btn px-2.5 py-1 rounded hover:bg-gray-800 text-gray-300" data-filter="actor">القيادات العسكرية</button>
+            <button onclick="filterMainGraph('chokepoint')" id="kg-btn-chokepoint" class="kg-filter-btn px-2.5 py-1 rounded hover:bg-gray-800 text-gray-300" data-filter="chokepoint">الممرات والمضائق</button>
+            <button onclick="filterMainGraph('resource')" id="kg-btn-resource" class="kg-filter-btn px-2.5 py-1 rounded hover:bg-gray-800 text-gray-300" data-filter="resource">حقول الغاز</button>
+            <button onclick="filterMainGraph('threat')" id="kg-btn-threat" class="kg-filter-btn px-2.5 py-1 rounded hover:bg-gray-800 text-gray-300" data-filter="threat">بؤر التهديد</button>
+          </div>
+          <button onclick="reloadMainGraph()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs flex items-center gap-1">
+            <span>🔄 إعادة ضبط الشبكة</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Graph Canvas Card + Sidebar Inspector -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div class="lg:col-span-3 glass-panel rounded-2xl p-3 border border-osiris-border relative overflow-hidden bg-gray-950/80">
+          <div class="absolute top-4 right-4 z-10 flex gap-1.5 bg-gray-900/90 backdrop-blur border border-gray-800 rounded-lg p-1 text-xs">
+            <button onclick="zoomMainGraph(1.2)" class="px-2 py-1 rounded hover:bg-gray-800 text-gray-300 font-bold" title="تكبير">+</button>
+            <button onclick="zoomMainGraph(0.8)" class="px-2 py-1 rounded hover:bg-gray-800 text-gray-300 font-bold" title="تصغير">−</button>
+            <button onclick="resetMainGraphZoom()" class="px-2 py-1 rounded hover:bg-gray-800 text-gray-300 font-mono text-[10px]" title="إعادة ضبط">100%</button>
+          </div>
+
+          <!-- Interactive Canvas -->
+          <canvas id="main-knowledge-graph-canvas" class="w-full h-[580px] rounded-xl cursor-grab active:cursor-grabbing border border-gray-800/80 bg-gray-950"></canvas>
+
+          <!-- Graph Legend -->
+          <div class="mt-2 pt-2 border-t border-gray-800/80 flex flex-wrap justify-between items-center text-[10px] text-gray-400 font-mono">
+            <div class="flex items-center gap-3">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🇪🇬 قيادة مصرية</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 🇱🇾 فصائل ليبيا</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span> 🇮🇱 إسرائيل</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span> 🌊 ممرات ومضائق</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span> 🛢️ حقول طاقة</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> ⚠️ تهديدات</span>
+            </div>
+            <span>💡 اسحب العقد بالماوس لتنظيم الخريطة، أو انقر على أي عقدة لفحص تفاصيلها وعلاقاتها.</span>
+          </div>
+        </div>
+
+        <!-- Node Inspector Sidebar -->
+        <div id="kg-inspector-card" class="glass-panel rounded-2xl p-4 border border-osiris-border space-y-4 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start mb-2">
+              <span id="inspect-node-type" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">STATE_ACTOR</span>
+              <span id="inspect-node-country" class="text-xs font-mono text-gray-400">Egypt</span>
+            </div>
+            <h4 id="inspect-node-title-ar" class="text-sm font-bold text-white mb-0.5">انقر على أي عقدة بالشبكة</h4>
+            <span id="inspect-node-title-en" class="text-[11px] text-gray-400 block font-mono mb-3">Click any node to inspect relationships</span>
+            
+            <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800 text-xs text-gray-300 leading-relaxed space-y-2">
+              <p id="inspect-node-details" class="text-gray-300">حدد أحد مراكز القيادة أو المعابر الحاكمة في الخريطة التفاعلية لعرض التوصيف الاستراتيجي وقائمة العلاقات المباشرة.</p>
+            </div>
+
+            <!-- Connected Edges List -->
+            <div class="mt-4">
+              <h5 class="text-[11px] font-bold text-gray-300 mb-2 font-mono">الروابط والعلاقات المتصلة:</h5>
+              <div id="inspect-connected-edges" class="space-y-1.5 max-h-56 overflow-y-auto text-[11px]">
+                <div class="text-gray-500 text-[10px]">لا توجد عقدة محددة حالياً.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-gray-800 text-[10px] text-gray-500 font-mono text-center">
+            OSIRIS Strategic Entity Knowledge Graph
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Agent Edit Modal -->
     <div id="agent-edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <div class="glass-panel w-full max-w-3xl rounded-2xl border border-gray-700 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
@@ -648,7 +743,7 @@
     }
 
     function switchTab(tabId) {
-      ['analyst-room', 'early-warning', 'evidence-bank', 'agents-roster'].forEach(t => {
+      ['analyst-room', 'early-warning', 'evidence-bank', 'agents-roster', 'knowledge-graph'].forEach(t => {
         const el = document.getElementById(`tab-${t}`);
         const btn = document.getElementById(`tab-btn-${t}`);
         if (el) el.classList.toggle('hidden', t !== tabId);
@@ -663,6 +758,7 @@
       if (tabId === 'early-warning') refreshIndicators();
       if (tabId === 'evidence-bank') loadEvidence();
       if (tabId === 'agents-roster') loadAgents();
+      if (tabId === 'knowledge-graph') loadMainKnowledgeGraph();
     }
 
     async function checkHealth() {
@@ -1036,6 +1132,11 @@
       // 5. Red Team Vulnerabilities
       const vulnList = document.getElementById('wargame-vulnerabilities-list');
       vulnList.innerHTML = data.red_team_vulnerabilities.map(v => `<li>${v}</li>`).join('');
+
+      // 6. Interactive Wargame Knowledge Graph
+      if (data.knowledge_graph && data.knowledge_graph.nodes && data.knowledge_graph.nodes.length > 0) {
+        initOrUpdateWargameGraph(data.knowledge_graph);
+      }
     }
 
     function displayAssessment(a) {
@@ -1452,6 +1553,629 @@
       } catch (e) {
         alert("خطأ: " + e.message);
       }
+    }
+
+    // ==========================================
+    // 🕸️ INTERACTIVE KNOWLEDGE GRAPH ENGINE
+    // ==========================================
+
+    class ForceKnowledgeGraph {
+      constructor(canvasId, options = {}) {
+        this.canvas = document.getElementById(canvasId);
+        if (!this.canvas) return;
+        this.ctx = this.canvas.getContext('2d');
+        this.options = Object.assign({
+          interactive: true,
+          onNodeSelect: null,
+          repulsion: 2200,
+          springLength: 130,
+          springStrength: 0.045,
+          gravity: 0.025,
+          damping: 0.88
+        }, options);
+
+        this.nodes = [];
+        this.edges = [];
+        this.nodeMap = {};
+        this.activeFilter = 'all';
+        this.selectedNode = null;
+        this.hoveredNode = null;
+
+        this.scale = 1.0;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.draggedNode = null;
+        this.isPanning = false;
+        this.panStartX = 0;
+        this.panStartY = 0;
+        this.animId = null;
+        this.pulsePhase = 0;
+
+        this.initDPI();
+        this.bindEvents();
+      }
+
+      initDPI() {
+        const rect = this.canvas.getBoundingClientRect();
+        this.dpr = window.devicePixelRatio || 1;
+        this.width = rect.width || 800;
+        this.height = rect.height || (this.canvas.id.includes('wargame') ? 288 : 580);
+        this.canvas.width = Math.round(this.width * this.dpr);
+        this.canvas.height = Math.round(this.height * this.dpr);
+        this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      }
+
+      setData(rawNodes, rawEdges) {
+        this.initDPI();
+        this.nodeMap = {};
+        const cx = this.width / 2;
+        const cy = this.height / 2;
+
+        this.nodes = rawNodes.map((n, i) => {
+          const angle = (i / rawNodes.length) * Math.PI * 2;
+          const radius = n.level === 1 ? 90 : 170 + (i % 3) * 30;
+          const wrapped = {
+            id: n.id,
+            label_ar: n.label_ar,
+            label_en: n.label_en,
+            node_type: n.node_type,
+            country: n.country,
+            details: n.details,
+            level: n.level || 2,
+            radius: n.level === 1 ? 22 : 16,
+            x: cx + Math.cos(angle) * radius + (Math.random() - 0.5) * 20,
+            y: cy + Math.sin(angle) * radius + (Math.random() - 0.5) * 20,
+            vx: 0,
+            vy: 0,
+            visible: true,
+            colors: this.getNodeColors(n),
+            icon: this.getNodeIcon(n),
+            raw: n
+          };
+          this.nodeMap[n.id] = wrapped;
+          return wrapped;
+        });
+
+        this.edges = rawEdges.map(e => ({
+          source: e.source,
+          target: e.target,
+          relation_ar: e.relation_ar,
+          relation_en: e.relation_en,
+          edge_type: e.edge_type,
+          weight: e.weight || 1.0,
+          color: this.getEdgeColor(e.edge_type),
+          raw: e
+        }));
+
+        // Pre-stabilize physics
+        for (let step = 0; step < 75; step++) {
+          this.stepPhysics();
+        }
+
+        if (this.nodes.length > 0 && !this.selectedNode) {
+          const defaultNode = this.nodes.find(n => n.id === 'NODE-EGY-HQ') || this.nodes[0];
+          this.selectNode(defaultNode);
+        }
+
+        this.startLoop();
+      }
+
+      getNodeColors(n) {
+        if (n.node_type === 'chokepoint') return { fill: '#0284c7', stroke: '#38bdf8', glow: 'rgba(56, 189, 248, 0.45)' };
+        if (n.node_type === 'resource') return { fill: '#ca8a04', stroke: '#facc15', glow: 'rgba(250, 204, 21, 0.45)' };
+        if (n.node_type === 'threat') return { fill: '#e11d48', stroke: '#fb7185', glow: 'rgba(244, 63, 94, 0.55)' };
+        if (n.country === 'Egypt') return { fill: '#059669', stroke: '#34d399', glow: 'rgba(52, 211, 153, 0.5)' };
+        if (n.country === 'Libya') return { fill: '#d97706', stroke: '#fbbf24', glow: 'rgba(251, 191, 36, 0.5)' };
+        if (n.country === 'Israel') return { fill: '#0891b2', stroke: '#22d3ee', glow: 'rgba(34, 211, 238, 0.5)' };
+        return { fill: '#475569', stroke: '#94a3b8', glow: 'rgba(148, 163, 184, 0.35)' };
+      }
+
+      getNodeIcon(n) {
+        if (n.node_type === 'chokepoint') return '🌊';
+        if (n.node_type === 'resource') return '🛢️';
+        if (n.node_type === 'threat') return '⚠️';
+        if (n.country === 'Egypt') return '🇪🇬';
+        if (n.country === 'Libya') return '🇱🇾';
+        if (n.country === 'Israel') return '🇮🇱';
+        return '🎯';
+      }
+
+      getEdgeColor(edgeType) {
+        switch (edgeType) {
+          case 'security': return '#10b981';
+          case 'conflict': return '#f43f5e';
+          case 'alliance': return '#f59e0b';
+          case 'resource': return '#06b6d4';
+          case 'surveillance': return '#a855f7';
+          default: return '#64748b';
+        }
+      }
+
+      stepPhysics() {
+        const cx = this.width / 2;
+        const cy = this.height / 2;
+
+        // 1. Repulsion between visible node pairs
+        for (let i = 0; i < this.nodes.length; i++) {
+          const n1 = this.nodes[i];
+          if (!n1.visible) continue;
+          for (let j = i + 1; j < this.nodes.length; j++) {
+            const n2 = this.nodes[j];
+            if (!n2.visible) continue;
+            let dx = n2.x - n1.x;
+            let dy = n2.y - n1.y;
+            let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            if (dist < 400) {
+              let force = this.options.repulsion / (dist * dist);
+              let fx = (dx / dist) * force;
+              let fy = (dy / dist) * force;
+              n1.vx -= fx;
+              n1.vy -= fy;
+              n2.vx += fx;
+              n2.vy += fy;
+            }
+          }
+        }
+
+        // 2. Spring tension along visible edges
+        for (const edge of this.edges) {
+          const s = this.nodeMap[edge.source];
+          const t = this.nodeMap[edge.target];
+          if (!s || !t || !s.visible || !t.visible) continue;
+
+          let dx = t.x - s.x;
+          let dy = t.y - s.y;
+          let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          let delta = dist - this.options.springLength;
+          let force = delta * this.options.springStrength;
+          let fx = (dx / dist) * force;
+          let fy = (dy / dist) * force;
+          s.vx += fx;
+          s.vy += fy;
+          t.vx -= fx;
+          t.vy -= fy;
+        }
+
+        // 3. Gravity towards center and velocity integration
+        for (const n of this.nodes) {
+          if (!n.visible) continue;
+          n.vx += (cx - n.x) * this.options.gravity;
+          n.vy += (cy - n.y) * this.options.gravity;
+
+          if (n === this.draggedNode) {
+            n.vx = 0;
+            n.vy = 0;
+          } else {
+            n.vx *= this.options.damping;
+            n.vy *= this.options.damping;
+            n.x += n.vx;
+            n.y += n.vy;
+
+            // Soft boundary bounds
+            const pad = n.radius + 10;
+            if (n.x < pad) { n.x = pad; n.vx = 0; }
+            if (n.x > this.width - pad) { n.x = this.width - pad; n.vx = 0; }
+            if (n.y < pad) { n.y = pad; n.vy = 0; }
+            if (n.y > this.height - pad) { n.y = this.height - pad; n.vy = 0; }
+          }
+        }
+      }
+
+      startLoop() {
+        if (this.animId) cancelAnimationFrame(this.animId);
+        const loop = () => {
+          this.pulsePhase = (this.pulsePhase + 1) % 1000;
+          this.stepPhysics();
+          this.render();
+          this.animId = requestAnimationFrame(loop);
+        };
+        this.animId = requestAnimationFrame(loop);
+      }
+
+      render() {
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, this.width, this.height);
+
+        // Tactical background
+        ctx.fillStyle = '#0a0e17';
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        // Grid dots
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+        const gridSize = 32 * this.scale;
+        const startX = (this.offsetX % gridSize + gridSize) % gridSize;
+        const startY = (this.offsetY % gridSize + gridSize) % gridSize;
+        for (let x = startX; x < this.width; x += gridSize) {
+          for (let y = startY; y < this.height; y += gridSize) {
+            ctx.beginPath();
+            ctx.arc(x, y, 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        ctx.save();
+        ctx.translate(this.offsetX, this.offsetY);
+        ctx.scale(this.scale, this.scale);
+
+        // 1. Draw Edges
+        for (const edge of this.edges) {
+          const s = this.nodeMap[edge.source];
+          const t = this.nodeMap[edge.target];
+          if (!s || !t || !s.visible || !t.visible) continue;
+
+          const isConnected = this.selectedNode && (s === this.selectedNode || t === this.selectedNode);
+          const hasSelection = !!this.selectedNode;
+
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.y);
+          ctx.lineTo(t.x, t.y);
+
+          ctx.strokeStyle = edge.color;
+          if (edge.edge_type === 'conflict') {
+            ctx.setLineDash([6, 4]);
+          } else {
+            ctx.setLineDash([]);
+          }
+
+          if (isConnected) {
+            ctx.lineWidth = 2.4;
+            ctx.globalAlpha = 0.95;
+          } else if (hasSelection) {
+            ctx.lineWidth = 1.0;
+            ctx.globalAlpha = 0.15;
+          } else {
+            ctx.lineWidth = 1.3;
+            ctx.globalAlpha = 0.45;
+          }
+          ctx.stroke();
+
+          // Animated signal pulse along active edge
+          const pT = ((this.pulsePhase * 0.015 + (s.x + t.y) * 0.002) % 1.0);
+          const px = s.x + (t.x - s.x) * pT;
+          const py = s.y + (t.y - s.y) * pT;
+          ctx.beginPath();
+          ctx.arc(px, py, isConnected ? 3.0 : 2.0, 0, Math.PI * 2);
+          ctx.fillStyle = edge.color;
+          ctx.globalAlpha = isConnected ? 1.0 : 0.6;
+          ctx.fill();
+
+          // Edge relation badge if connected to selected node
+          if (isConnected && this.scale >= 0.75) {
+            const midX = (s.x + t.x) / 2;
+            const midY = (s.y + t.y) / 2;
+            ctx.font = 'bold 9px system-ui, sans-serif';
+            const label = edge.relation_ar;
+            const tw = ctx.measureText(label).width;
+            
+            ctx.fillStyle = 'rgba(10, 14, 23, 0.92)';
+            ctx.strokeStyle = edge.color;
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 1.0;
+            ctx.beginPath();
+            ctx.roundRect(midX - tw/2 - 5, midY - 8, tw + 10, 16, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#f1f5f9';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, midX, midY);
+          }
+        }
+
+        ctx.setLineDash([]);
+
+        // 2. Draw Nodes
+        for (const n of this.nodes) {
+          if (!n.visible) continue;
+          const isSelected = n === this.selectedNode;
+          const isHovered = n === this.hoveredNode;
+          const isConnected = this.selectedNode && this.getConnectedEdges(this.selectedNode).some(e => e.source === n.id || e.target === n.id);
+          const hasSelection = !!this.selectedNode;
+
+          ctx.globalAlpha = (isSelected || !hasSelection || isConnected) ? 1.0 : 0.25;
+
+          // Glowing halo
+          if (isSelected || isHovered || n.level === 1) {
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, n.radius + (isSelected ? 7 : 4), 0, Math.PI * 2);
+            ctx.strokeStyle = n.colors.stroke;
+            ctx.lineWidth = isSelected ? 3 : 1.5;
+            ctx.shadowColor = n.colors.stroke;
+            ctx.shadowBlur = isSelected ? 16 : 8;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+          }
+
+          // Node circle
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+          ctx.fillStyle = n.colors.fill;
+          ctx.fill();
+          ctx.strokeStyle = n.colors.stroke;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Node Icon
+          ctx.font = `${Math.round(n.radius * 0.9)}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(n.icon, n.x, n.y + 1);
+
+          // Node text pill
+          const labelY = n.y + n.radius + 12;
+          ctx.font = 'bold 11px system-ui, sans-serif';
+          const tw = ctx.measureText(n.label_ar).width;
+
+          ctx.fillStyle = isSelected ? 'rgba(15, 23, 42, 0.96)' : 'rgba(15, 23, 42, 0.82)';
+          ctx.strokeStyle = isSelected ? n.colors.stroke : 'rgba(51, 65, 85, 0.75)';
+          ctx.lineWidth = isSelected ? 1.5 : 1;
+          ctx.beginPath();
+          ctx.roundRect(n.x - tw / 2 - 6, labelY - 7, tw + 12, 17, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = isSelected ? '#ffffff' : '#e2e8f0';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(n.label_ar, n.x, labelY + 1);
+        }
+
+        ctx.restore();
+      }
+
+      bindEvents() {
+        const canvas = this.canvas;
+
+        const getPos = (e) => {
+          const rect = canvas.getBoundingClientRect();
+          return {
+            x: (e.clientX - rect.left - this.offsetX) / this.scale,
+            y: (e.clientY - rect.top - this.offsetY) / this.scale
+          };
+        };
+
+        const findNode = (worldX, worldY) => {
+          for (let i = this.nodes.length - 1; i >= 0; i--) {
+            const n = this.nodes[i];
+            if (!n.visible) continue;
+            const dx = worldX - n.x;
+            const dy = worldY - n.y;
+            if (dx * dx + dy * dy <= (n.radius + 8) * (n.radius + 8)) {
+              return n;
+            }
+          }
+          return null;
+        };
+
+        canvas.addEventListener('mousedown', (e) => {
+          const pos = getPos(e);
+          const clicked = findNode(pos.x, pos.y);
+          if (clicked) {
+            this.draggedNode = clicked;
+            this.selectNode(clicked);
+          } else {
+            this.isPanning = true;
+            this.panStartX = e.clientX - this.offsetX;
+            this.panStartY = e.clientY - this.offsetY;
+          }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!this.canvas) return;
+          if (this.draggedNode) {
+            const pos = getPos(e);
+            this.draggedNode.x = pos.x;
+            this.draggedNode.y = pos.y;
+            this.draggedNode.vx = 0;
+            this.draggedNode.vy = 0;
+          } else if (this.isPanning) {
+            this.offsetX = e.clientX - this.panStartX;
+            this.offsetY = e.clientY - this.panStartY;
+          } else {
+            const rect = canvas.getBoundingClientRect();
+            if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+              const pos = getPos(e);
+              const node = findNode(pos.x, pos.y);
+              this.hoveredNode = node;
+              canvas.style.cursor = node ? 'pointer' : 'grab';
+            }
+          }
+        });
+
+        window.addEventListener('mouseup', () => {
+          this.draggedNode = null;
+          this.isPanning = false;
+          if (this.canvas) this.canvas.style.cursor = 'grab';
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
+          this.zoom(zoomFactor, e.clientX, e.clientY);
+        }, { passive: false });
+
+        window.addEventListener('resize', () => {
+          if (this.canvas.offsetParent !== null) {
+            this.initDPI();
+          }
+        });
+      }
+
+      selectNode(node) {
+        this.selectedNode = node;
+        if (this.options.onNodeSelect) {
+          const connected = this.getConnectedEdges(node);
+          this.options.onNodeSelect(node, connected, this.nodeMap);
+        }
+      }
+
+      getConnectedEdges(node) {
+        if (!node) return [];
+        return this.edges.filter(e => e.source === node.id || e.target === node.id);
+      }
+
+      filter(type) {
+        this.activeFilter = type;
+        for (const n of this.nodes) {
+          if (type === 'all') {
+            n.visible = true;
+          } else if (type === 'actor') {
+            n.visible = (n.node_type === 'actor' || n.node_type === 'military_unit');
+          } else {
+            n.visible = (n.node_type === type);
+          }
+        }
+        if (this.selectedNode && !this.selectedNode.visible) {
+          const visible = this.nodes.find(n => n.visible);
+          if (visible) this.selectNode(visible);
+        }
+      }
+
+      zoom(factor, clientX, clientY) {
+        const prevScale = this.scale;
+        const newScale = Math.max(0.35, Math.min(2.8, prevScale * factor));
+        const rect = this.canvas.getBoundingClientRect();
+        const pivotX = clientX !== undefined ? (clientX - rect.left) : (this.width / 2);
+        const pivotY = clientY !== undefined ? (clientY - rect.top) : (this.height / 2);
+
+        this.offsetX = pivotX - (pivotX - this.offsetX) * (newScale / prevScale);
+        this.offsetY = pivotY - (pivotY - this.offsetY) * (newScale / prevScale);
+        this.scale = newScale;
+      }
+
+      resetZoom() {
+        this.scale = 1.0;
+        this.offsetX = 0;
+        this.offsetY = 0;
+      }
+    }
+
+    // Knowledge Graph Global Variables & Handlers
+    let mainGraphInstance = null;
+    let wargameGraphInstance = null;
+    let cachedGraphData = null;
+
+    async function loadMainKnowledgeGraph(forceReload = false) {
+      const canvas = document.getElementById('main-knowledge-graph-canvas');
+      if (!canvas) return;
+
+      if (mainGraphInstance && !forceReload) {
+        mainGraphInstance.initDPI();
+        return;
+      }
+
+      try {
+        if (!cachedGraphData || forceReload) {
+          const res = await fetch('/api/simulation/graph');
+          if (!res.ok) throw new Error("تعذر جلب شبكة المعرفة من الخادم: " + res.status);
+          cachedGraphData = await res.json();
+        }
+
+        if (!mainGraphInstance) {
+          mainGraphInstance = new ForceKnowledgeGraph('main-knowledge-graph-canvas', {
+            onNodeSelect: inspectGraphNode,
+            repulsion: 2400,
+            springLength: 140
+          });
+        }
+
+        mainGraphInstance.setData(cachedGraphData.nodes, cachedGraphData.edges);
+      } catch (err) {
+        console.error("Knowledge Graph load error:", err);
+      }
+    }
+
+    function inspectGraphNode(node, connectedEdges, nodeMap) {
+      const typeEl = document.getElementById('inspect-node-type');
+      const countryEl = document.getElementById('inspect-node-country');
+      const titleArEl = document.getElementById('inspect-node-title-ar');
+      const titleEnEl = document.getElementById('inspect-node-title-en');
+      const detailsEl = document.getElementById('inspect-node-details');
+      const edgesListEl = document.getElementById('inspect-connected-edges');
+
+      if (!typeEl || !node) return;
+
+      const typeLabels = {
+        'actor': 'قيادة استراتيجية',
+        'military_unit': 'تشكيل وتعبئة عسكرية',
+        'chokepoint': 'ممر بحري / معبر حاكم',
+        'resource': 'حقل طاقة / مورد حيوي',
+        'threat': 'بؤرة تهديد لا نظامية'
+      };
+
+      typeEl.textContent = typeLabels[node.node_type] || node.node_type;
+      countryEl.textContent = node.country || 'إقليمي';
+      titleArEl.textContent = node.label_ar;
+      const titleEnText = `${node.label_en} [${node.id}]`;
+      titleEnEl.textContent = titleEnText;
+      detailsEl.textContent = node.details || 'لا تتوفر تفاصيل إضافية للعقدة المحددة.';
+
+      if (connectedEdges.length === 0) {
+        edgesListEl.innerHTML = '<div class="text-gray-500 text-[10px]">لا توجد روابط مباشرة مسجلة لهذه العقدة.</div>';
+      } else {
+        edgesListEl.innerHTML = connectedEdges.map(e => {
+          const otherId = e.source === node.id ? e.target : e.source;
+          const otherNode = nodeMap[otherId] || { label_ar: otherId, label_en: otherId };
+          const badgeColors = {
+            'security': 'bg-emerald-950 text-emerald-400 border-emerald-800',
+            'conflict': 'bg-rose-950 text-rose-400 border-rose-800',
+            'alliance': 'bg-amber-950 text-amber-400 border-amber-800',
+            'resource': 'bg-cyan-950 text-cyan-400 border-cyan-800',
+            'surveillance': 'bg-purple-950 text-purple-400 border-purple-800'
+          };
+          const bClass = badgeColors[e.edge_type] || 'bg-gray-800 text-gray-300 border-gray-700';
+
+          return `
+            <div class="p-2 rounded bg-gray-900/90 border border-gray-800 hover:border-gray-700 transition">
+              <div class="flex justify-between items-start mb-0.5">
+                <span class="font-bold text-gray-100 text-[11px]">${otherNode.label_ar}</span>
+                <span class="text-[9px] px-1.5 py-0.2 rounded border font-mono ${bClass}">${e.edge_type}</span>
+              </div>
+              <p class="text-[10px] text-gray-400">${e.relation_ar}</p>
+              <span class="text-[9px] text-gray-500 font-mono block mt-0.5">${e.relation_en}</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function filterMainGraph(type) {
+      document.querySelectorAll('.kg-filter-btn').forEach(b => {
+        const match = b.dataset.filter === type;
+        b.className = match
+          ? "kg-filter-btn px-2.5 py-1 rounded bg-emerald-600 text-white font-bold"
+          : "kg-filter-btn px-2.5 py-1 rounded hover:bg-gray-800 text-gray-300";
+      });
+      if (mainGraphInstance) {
+        mainGraphInstance.filter(type);
+      }
+    }
+
+    function zoomMainGraph(factor) {
+      if (mainGraphInstance) mainGraphInstance.zoom(factor);
+    }
+
+    function resetMainGraphZoom() {
+      if (mainGraphInstance) mainGraphInstance.resetZoom();
+    }
+
+    function reloadMainGraph() {
+      loadMainKnowledgeGraph(true);
+    }
+
+    function initOrUpdateWargameGraph(graphData) {
+      const canvas = document.getElementById('wargame-knowledge-graph-canvas');
+      if (!canvas || !graphData || !graphData.nodes) return;
+
+      if (!wargameGraphInstance) {
+        wargameGraphInstance = new ForceKnowledgeGraph('wargame-knowledge-graph-canvas', {
+          repulsion: 1500,
+          springLength: 95,
+          interactive: true
+        });
+      }
+      wargameGraphInstance.setData(graphData.nodes, graphData.edges);
     }
 
     function toggleLang() {

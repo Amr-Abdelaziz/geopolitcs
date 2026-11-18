@@ -50,6 +50,22 @@ async def test_api_wargame_simulation_execution():
         assert len(sim["rounds"]) >= 2
         assert len(sim["emergent_outcomes"]) >= 1
         assert "probability_distribution" in sim
+        assert "knowledge_graph" in sim
+        assert len(sim["knowledge_graph"]["nodes"]) >= 5
+
+
+@pytest.mark.asyncio
+async def test_api_simulation_graph():
+    """Verify GET /api/simulation/graph returns knowledge graph."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.get("/api/simulation/graph")
+        assert res.status_code == 200
+        data = res.json()
+        assert "nodes" in data
+        assert "edges" in data
+        assert len(data["nodes"]) >= 10
+        assert len(data["edges"]) >= 10
 
 
 def test_mirofish_fallback_generation():

@@ -30,6 +30,7 @@ from packages.schemas.models import (
     StrategicAssessment,
     WargameRequest,
     WargameSimulationResult,
+    KnowledgeGraph,
 )
 from packages.storage.database import DatabaseManager
 from services.orchestrator.pipeline import StrategicPipeline
@@ -346,6 +347,15 @@ async def dismiss_alert(alert_id: str):
 async def get_simulation_status():
     """Return status of MiroFish wargaming engine (online container or native bridge)."""
     return await mirofish_client.check_status()
+
+
+@app.get("/api/simulation/graph", response_model=KnowledgeGraph)
+async def get_knowledge_graph(
+    countries: Optional[str] = Query("Egypt,Libya,Israel", description="Comma-separated country list")
+) -> KnowledgeGraph:
+    """Return the active strategic knowledge graph connecting regional factions, chokepoints, and threats."""
+    country_list = [c.strip() for c in (countries or "").split(",") if c.strip()]
+    return mirofish_client.build_knowledge_graph(target_countries=country_list)
 
 
 @app.post("/api/simulation/wargame", response_model=WargameSimulationResult)

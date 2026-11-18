@@ -303,6 +303,30 @@ class ApprovalAction(BaseModel):
 
 # --- MiroFish & Swarm Wargame Simulation Schemas ---
 
+class GraphNode(BaseModel):
+    id: str
+    label_ar: str
+    label_en: str
+    node_type: str = "actor"  # actor, chokepoint, threat, resource, alliance
+    country: str = "Regional"
+    details: Optional[str] = None
+    level: int = 1  # 1 (primary) to 3 (subsidiary)
+
+
+class GraphEdge(BaseModel):
+    source: str
+    target: str
+    relation_ar: str
+    relation_en: str
+    edge_type: str = "security"  # alliance, conflict, security, resource, surveillance
+    weight: float = 1.0
+
+
+class KnowledgeGraph(BaseModel):
+    nodes: List[GraphNode] = Field(default_factory=list)
+    edges: List[GraphEdge] = Field(default_factory=list)
+
+
 class WargameActor(BaseModel):
     id: str
     name_ar: str
@@ -342,4 +366,5 @@ class WargameSimulationResult(BaseModel):
     emergent_outcomes: List[str] = Field(default_factory=list)
     probability_distribution: Dict[str, float] = Field(default_factory=dict)
     red_team_vulnerabilities: List[str] = Field(default_factory=list)
+    knowledge_graph: Optional[KnowledgeGraph] = None
     created_at: datetime = Field(default_factory=utc_now)

@@ -14,6 +14,9 @@ import httpx
 from packages.openrouter.client import OpenRouterClient
 from packages.schemas.models import (
     DocumentEvidence,
+    GraphEdge,
+    GraphNode,
+    KnowledgeGraph,
     SimulationRound,
     WargameActor,
     WargameRequest,
@@ -241,11 +244,174 @@ class MiroFishClient:
                     "مخاطر استغلال الجماعات المسلحة غير النظامية للفجوات الرادارية والمناطق الوعرة.",
                     "حساسية تأمين الممرات اللوجستية في أوقات تبدل التحالفات المحلية المفاجئة."
                 ]),
+                knowledge_graph=self.build_knowledge_graph(request.target_countries, actors),
                 created_at=datetime.now(timezone.utc)
             )
         except Exception as e:
             log.error("Failed to parse wargame JSON output: %s; falling back to default structured model", e)
             return self._fallback_result(sim_id, request, evidence_count)
+
+    def build_knowledge_graph(
+        self,
+        target_countries: Optional[List[str]] = None,
+        actors: Optional[List[WargameActor]] = None
+    ) -> KnowledgeGraph:
+        """Construct a high-resolution, multi-domain geopolitical knowledge graph."""
+        nodes: List[GraphNode] = [
+            GraphNode(
+                id="NODE-EGY-HQ",
+                label_ar="القيادة العامة للقوات المسلحة المصرية",
+                label_en="Egyptian Armed Forces GHQ",
+                node_type="actor",
+                country="Egypt",
+                details="مركز القيادة والسيطرة الاستراتيجية وإدارة مسارح العمليات المشتركة وتأمين السيادة الوطنية",
+                level=1
+            ),
+            GraphNode(
+                id="NODE-EGY-WEST",
+                label_ar="قيادة المنطقة الغربية وقاعدة 3 يوليو",
+                label_en="Western Military Zone & July 3 Base",
+                node_type="military_unit",
+                country="Egypt",
+                details="تأمين الاتجاه الاستراتيجي الغربي والساحل الشمالي والعمق الصحراوي مع ليبيا",
+                level=2
+            ),
+            GraphNode(
+                id="NODE-EGY-SINAI",
+                label_ar="قيادة الجيشين الثاني والثالث الميدانيين",
+                label_en="2nd & 3rd Field Armies (Sinai)",
+                node_type="military_unit",
+                country="Egypt",
+                details="تأمين الاتجاه الاستراتيجي الشمالي الشرقي وشبه جزيرة سيناء والمنافذ الحدودية",
+                level=2
+            ),
+            GraphNode(
+                id="NODE-LBY-EAST",
+                label_ar="القيادة العامة بالشرق الليبي (LNA)",
+                label_en="Libyan National Army (Eastern Command)",
+                node_type="actor",
+                country="Libya",
+                details="السيطرة العسكرية على برقة والهلال النفطي والتنسيق الأمني مع الحدود المصرية",
+                level=1
+            ),
+            GraphNode(
+                id="NODE-LBY-WEST",
+                label_ar="حكومة الوحدة الوطنية والتشكيلات الغربية (طرابلس)",
+                label_en="GNU & Western Tripoli Formations",
+                node_type="actor",
+                country="Libya",
+                details="السيطرة الإدارية والمؤسساتية على طرابلس والمنطقة الغربية والمنافذ الجوية والبحرية",
+                level=1
+            ),
+            GraphNode(
+                id="NODE-ISR-IDF",
+                label_ar="الجيش الإسرائيلي (IDF)",
+                label_en="Israel Defense Forces",
+                node_type="actor",
+                country="Israel",
+                details="الانتشار الميداني والعمليات في قطاع غزة والحدود الجنوبية",
+                level=1
+            ),
+            GraphNode(
+                id="NODE-CHK-SALLUM",
+                label_ar="منفذ السلوم والحدود البرية المشتركة",
+                label_en="Sallum Border Crossing Corridor",
+                node_type="chokepoint",
+                country="Egypt",
+                details="المعبر البري الاستراتيجي وشريان التجارة وحركة الأفراد بين مصر وليبيا",
+                level=2
+            ),
+            GraphNode(
+                id="NODE-CHK-SUEZ",
+                label_ar="قناة السويس والمجرى الملاحي الدولي",
+                label_en="Suez Canal Maritime Corridor",
+                node_type="chokepoint",
+                country="Egypt",
+                details="أهم ممر ملاحي عالمي يربط البحرين المتوسط والأحمر وركيزة استراتيجية للتجارة الدولية",
+                level=1
+            ),
+            GraphNode(
+                id="NODE-CHK-BAB",
+                label_ar="مضيق باب المندب وجنوب البحر الأحمر",
+                label_en="Bab el-Mandeb Strategic Chokepoint",
+                node_type="chokepoint",
+                country="Regional",
+                details="المدخل الجنوبي للبحر الأحمر وممر تجارة الطاقة والسلع الدولية وركيزة سلامة الملاحة",
+                level=1
+            ),
+            GraphNode(
+                id="NODE-CHK-PHIL",
+                label_ar="محور فيلادلفيا ومعبر رفح",
+                label_en="Philadelphi Corridor & Rafah Crossing",
+                node_type="chokepoint",
+                country="Egypt",
+                details="المنطقة الحدودية الحاكمة الفاصلة بين مصر وقطاع غزة",
+                level=2
+            ),
+            GraphNode(
+                id="NODE-RES-GAS",
+                label_ar="حقول غاز شرق المتوسط وشبكة الأنابيب",
+                label_en="East Med Offshore Gas Fields & Pipelines",
+                node_type="resource",
+                country="East Med",
+                details="حقول ظهر وأفروديت ومحطات الإسالة بإدكو ودمياط وتصدير الغاز",
+                level=2
+            ),
+            GraphNode(
+                id="NODE-THR-SMUG",
+                label_ar="شبكات التهريب والجماعات غير النظامية",
+                label_en="Asymmetric Smuggling & Irregular Networks",
+                node_type="threat",
+                country="Regional",
+                details="تهريب السلاح والمخدرات والهجرة غير الشرعية عبر الدروب الصحراوية الوعرة",
+                level=2
+            )
+        ]
+
+        if actors:
+            for a in actors:
+                node_id = f"NODE-{a.id}"
+                if not any(n.id == node_id for n in nodes):
+                    nodes.append(GraphNode(
+                        id=node_id,
+                        label_ar=a.name_ar,
+                        label_en=a.name_en,
+                        node_type="actor",
+                        country="Regional",
+                        details=f"الموقف: {a.posture} | الأهداف: {a.objectives}",
+                        level=2
+                    ))
+
+        edges: List[GraphEdge] = [
+            GraphEdge(source="NODE-EGY-HQ", target="NODE-EGY-WEST", relation_ar="قيادة وسيطرة عملياتية مباشرة", relation_en="Operational Command", edge_type="security", weight=1.0),
+            GraphEdge(source="NODE-EGY-HQ", target="NODE-EGY-SINAI", relation_ar="انتشار تعبوي وجاهزية ردع", relation_en="Tactical Deployment", edge_type="security", weight=1.0),
+            GraphEdge(source="NODE-EGY-WEST", target="NODE-CHK-SALLUM", relation_ar="تأمين مانع ومراقبة رادارية مستمرة", relation_en="Border Defense & Radar", edge_type="security", weight=1.0),
+            GraphEdge(source="NODE-LBY-EAST", target="NODE-CHK-SALLUM", relation_ar="تنسيق أمني مشترك لضبط المنافذ", relation_en="Security Coordination", edge_type="alliance", weight=0.8),
+            GraphEdge(source="NODE-LBY-EAST", target="NODE-LBY-WEST", relation_ar="تنافس سياسي ونزاع نفوذ وموارد", relation_en="Political & Resource Rivalry", edge_type="conflict", weight=0.9),
+            GraphEdge(source="NODE-EGY-HQ", target="NODE-CHK-SUEZ", relation_ar="حماية سيادية ودفاع جوي وبحري", relation_en="Sovereign Protection", edge_type="security", weight=1.0),
+            GraphEdge(source="NODE-CHK-SUEZ", target="NODE-CHK-BAB", relation_ar="شريان ملاحة تجاري متصل", relation_en="Maritime Supply Arteries", edge_type="resource", weight=1.0),
+            GraphEdge(source="NODE-EGY-HQ", target="NODE-CHK-BAB", relation_ar="دوريات ردع بحرية مشتركة", relation_en="Naval Deterrence Patrols", edge_type="surveillance", weight=0.8),
+            GraphEdge(source="NODE-EGY-SINAI", target="NODE-CHK-PHIL", relation_ar="تأمين سيادي مانع للاختراق", relation_en="Border Inviolability", edge_type="security", weight=1.0),
+            GraphEdge(source="NODE-ISR-IDF", target="NODE-CHK-PHIL", relation_ar="توتر واحتكاك عملياتي ومراقبة", relation_en="Operational Friction", edge_type="conflict", weight=0.9),
+            GraphEdge(source="NODE-EGY-HQ", target="NODE-RES-GAS", relation_ar="حماية المنطقة الاقتصادية الخالصة", relation_en="EEZ Protection", edge_type="security", weight=0.85),
+            GraphEdge(source="NODE-THR-SMUG", target="NODE-CHK-SALLUM", relation_ar="محاولات تسلل وتهريب عابر", relation_en="Smuggling Infiltration", edge_type="conflict", weight=0.7),
+            GraphEdge(source="NODE-EGY-WEST", target="NODE-THR-SMUG", relation_ar="مكافحة وإحباط استباقي للمسلحين", relation_en="Counter-Smuggling Interdiction", edge_type="security", weight=0.9)
+        ]
+
+        if actors:
+            for a in actors:
+                node_id = f"NODE-{a.id}"
+                target_node = "NODE-CHK-SALLUM" if ("ليبيا" in a.name_ar or "Libya" in a.name_en) else "NODE-EGY-HQ"
+                edges.append(GraphEdge(
+                    source=node_id,
+                    target=target_node,
+                    relation_ar=f"تفاعل عملياتي ({a.posture})",
+                    relation_en=f"Operational engagement ({a.posture})",
+                    edge_type="conflict" if a.posture == "offensive" else "security",
+                    weight=0.75
+                ))
+
+        return KnowledgeGraph(nodes=nodes, edges=edges)
 
     def _fallback_result(
         self,
@@ -325,6 +491,7 @@ class MiroFishClient:
                 "احتمالية استغلال أطراف ثالثة أو شبكات تهريب للمناطق الصحراوية المفتوحة.",
                 "تقلب الولاءات العشائرية في حالات غياب الحوافز الاقتصادية والتنموية المشتركة."
             ],
+            knowledge_graph=self.build_knowledge_graph(request.target_countries),
             created_at=datetime.now(timezone.utc)
         )
 
@@ -345,5 +512,6 @@ class MiroFishClient:
             god_view_intervention=request.god_view_intervention,
             emergent_outcomes=data.get("predictions", ["Emergent outcome generated from MiroFish OASIS engine."]),
             probability_distribution=data.get("probabilities", {"Status Quo": 0.60, "Escalation": 0.40}),
+            knowledge_graph=self.build_knowledge_graph(request.target_countries),
             created_at=datetime.now(timezone.utc)
         )
