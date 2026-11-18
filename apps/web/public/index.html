@@ -659,19 +659,40 @@
       <!-- Controls, Country Selectors & Branch Filters -->
       <div class="glass-panel p-3.5 rounded-xl border border-purple-900/40 bg-purple-950/10 space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <!-- Country Selector Pills -->
+          <!-- Quick Theater Selector Pills -->
           <div class="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
-            <button onclick="switchOrbatCountry('All')" id="orbat-c-btn-All" class="orbat-c-btn px-3 py-1.5 rounded-lg bg-purple-600 text-white font-bold transition">
-              🌐 كافة مسارح العمليات
+            <button onclick="switchOrbatCatalog('egypt')" id="orbat-cat-btn-egypt" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-purple-600 text-white font-bold transition">
+              🇪🇬 مصر (EAF)
             </button>
-            <button onclick="switchOrbatCountry('Egypt')" id="orbat-c-btn-Egypt" class="orbat-c-btn px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
-              🇪🇬 القوات المسلحة المصرية
+            <button onclick="switchOrbatCatalog('libya')" id="orbat-cat-btn-libya" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇱🇾 ليبيا
             </button>
-            <button onclick="switchOrbatCountry('Libya')" id="orbat-c-btn-Libya" class="orbat-c-btn px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
-              🇱🇾 التشكيلات المسلحة في ليبيا
+            <button onclick="switchOrbatCatalog('israel')" id="orbat-cat-btn-israel" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇮🇱 إسرائيل (IDF)
             </button>
-            <button onclick="switchOrbatCountry('Israel')" id="orbat-c-btn-Israel" class="orbat-c-btn px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
-              🇮🇱 القيادة الجنوبية الإسرائيلية
+            <button onclick="switchOrbatCatalog('middleeasternfactions')" id="orbat-cat-btn-middleeasternfactions" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇵🇸 فصائل المقاومة والشرق الأوسط
+            </button>
+            <button onclick="switchOrbatCatalog('yemen')" id="orbat-cat-btn-yemen" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇾🇪 اليمن
+            </button>
+            <button onclick="switchOrbatCatalog('syrianew')" id="orbat-cat-btn-syrianew" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇸🇾 سوريا
+            </button>
+            <button onclick="switchOrbatCatalog('iran')" id="orbat-cat-btn-iran" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇮🇷 إيران
+            </button>
+            <button onclick="switchOrbatCatalog('sudan')" id="orbat-cat-btn-sudan" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇸🇩 السودان
+            </button>
+            <button onclick="switchOrbatCatalog('russia')" id="orbat-cat-btn-russia" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇷🇺 روسيا
+            </button>
+            <button onclick="switchOrbatCatalog('us')" id="orbat-cat-btn-us" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇺🇸 أمريكا
+            </button>
+            <button onclick="switchOrbatCatalog('ukraine')" id="orbat-cat-btn-ukraine" class="orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇺🇦 أوكرانيا
             </button>
           </div>
 
@@ -686,10 +707,40 @@
           </div>
         </div>
 
-        <!-- Secondary Filter Bar (Search + Branch) -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2 border-t border-purple-900/30 text-xs">
+        <!-- Secondary Filter Bar (All 21 Catalogs Dropdown + Search + Branch) -->
+        <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2.5 pt-2 border-t border-purple-900/30 text-xs">
+          <!-- All Catalogs Dropdown -->
+          <div class="flex items-center gap-1.5">
+            <span class="text-gray-400 font-mono text-[11px] whitespace-nowrap">المسرح/الكاتالوج (GeoConfirmed):</span>
+            <select id="select-orbat-catalog" onchange="switchOrbatCatalog(this.value)" class="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2 text-xs text-purple-300 focus:outline-none focus:border-purple-500 font-medium">
+              <!-- Dynamically populated with all 21 catalogs -->
+              <option value="egypt">🇪🇬 مصر (Egyptian Armed Forces)</option>
+              <option value="libya">🇱🇾 ليبيا (LNA & GNU)</option>
+              <option value="israel">🇮🇱 إسرائيل (Israel Defense Forces)</option>
+              <option value="middleeasternfactions">🇵🇸 فصائل المقاومة والشرق الأوسط</option>
+              <option value="yemen">🇾🇪 القوات والتشكيلات اليمنية</option>
+              <option value="syrianew">🇸🇾 القوات السورية</option>
+              <option value="iran">🇮🇷 القوات المسلحة الإيرانية</option>
+              <option value="sudan">🇸🇩 القوات المسلحة السودانية</option>
+              <option value="sudan-factions">🇸🇩 فصائل النزاع السوداني (الدعم السريع)</option>
+              <option value="russia">🇷🇺 القوات المسلحة الروسية (Russia)</option>
+              <option value="us">🇺🇸 القوات المسلحة الأمريكية (US)</option>
+              <option value="ukraine">🇺🇦 القوات الأوكرانية (Ukraine ZSU)</option>
+              <option value="endf">🇪🇹 إثيوبيا (ENDF)</option>
+              <option value="china">🇨🇳 جيش التحرير الشعبي الصيني (China)</option>
+              <option value="france">🇫🇷 القوات الفرنسية (France)</option>
+              <option value="terroristmilitant">⚠️ فصائل مسلحة / غير نظامية</option>
+              <option value="fama">🇲🇱 مالي (FAMa)</option>
+              <option value="cambodia">🇰🇭 كمبوديا</option>
+              <option value="thailand">🇹🇭 تايلاند</option>
+              <option value="rwanda">🇷🇼 رواندا</option>
+              <option value="ven">🇻🇪 فنزويلا (FANB)</option>
+              <option value="myanmar">🇲🇲 ميانمار</option>
+            </select>
+          </div>
+
           <div class="relative flex-1">
-            <input id="input-orbat-search" type="text" placeholder="ابحث عن تشكيل أو لواء أو فرقة أو قاعدة أو سلاح (e.g. Abrams, السلوم, Rafale, جفعاتي)..." 
+            <input id="input-orbat-search" type="text" placeholder="ابحث بالاسم أو السلاح أو القاعدة أو الشعار (e.g. Abrams, Rafale, جفعاتي, القسام)..." 
               oninput="filterOrbatTree()"
               class="w-full bg-gray-950 border border-gray-800 rounded-lg pr-9 pl-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-purple-500 font-medium">
             <span class="absolute right-3 top-2.5 text-gray-500">🔍</span>
@@ -749,12 +800,19 @@
               <span id="dossier-country" class="text-xs font-mono text-gray-400">Egypt</span>
             </div>
 
-            <div>
-              <div class="flex items-center gap-2">
-                <span id="dossier-badge" class="text-xl">🦅</span>
-                <h4 id="dossier-title-ar" class="text-sm font-bold text-white">القيادة العامة للقوات المسلحة المصرية</h4>
+            <div class="flex items-center gap-3">
+              <img id="dossier-logo-img" class="w-14 h-14 object-contain rounded-xl p-1 bg-black/80 border border-purple-800/80 shadow-xl flex-shrink-0 hidden" onerror="this.classList.add('hidden')">
+              <span id="dossier-badge" class="text-2xl p-2 rounded-xl bg-gray-950 border border-gray-800 flex items-center justify-center">🦅</span>
+              <div class="flex-1 min-w-0">
+                <h4 id="dossier-title-ar" class="text-sm font-bold text-white leading-snug">القيادة العامة للقوات المسلحة المصرية</h4>
+                <span id="dossier-title-en" class="text-[11px] text-gray-400 block font-mono mt-0.5 truncate">Egyptian Armed Forces GHQ</span>
+                <span id="dossier-native-name" class="text-[10px] text-purple-300 font-mono block mt-0.5 truncate"></span>
               </div>
-              <span id="dossier-title-en" class="text-[11px] text-gray-400 block font-mono mt-0.5">Egyptian Armed Forces GHQ</span>
+            </div>
+
+            <!-- Additional Patches / Badges row -->
+            <div id="dossier-patches" class="flex flex-wrap gap-1.5 pt-1">
+              <!-- Injected via JS -->
             </div>
 
             <!-- Command Path Breadcrumb -->
@@ -2360,10 +2418,10 @@
     }
 
     // ==========================================
-    // ⚔️ ORDER OF BATTLE (ORBAT) INTERACTIVE ENGINE
+    // ⚔️ ORDER OF BATTLE (ORBAT) INTERACTIVE ENGINE (GeoConfirmed Synced)
     // ==========================================
 
-    let currentOrbatCountry = 'All';
+    let currentOrbatCatalog = 'egypt';
     let currentOrbatBranch = 'All';
     let currentOrbatSearch = '';
     let cachedOrbatData = null;
@@ -2381,9 +2439,11 @@
       currentOrbatBranch = branch;
       currentOrbatSearch = search;
 
+      container.innerHTML = '<div class="text-xs text-purple-400 py-16 text-center animate-pulse">⚔️ جاري تحميل هيكل ترتيب المعركة والشعارات الرسمية من GeoConfirmed...</div>';
+
       try {
         const queryParams = new URLSearchParams({
-          country: currentOrbatCountry,
+          catalog: currentOrbatCatalog,
           branch: currentOrbatBranch,
           search: currentOrbatSearch
         });
@@ -2399,7 +2459,7 @@
           cachedOrbatData.flat_units.forEach(u => { orbatUnitLookup[u.id] = u; });
         }
 
-        document.getElementById('orbat-unit-count').textContent = `${cachedOrbatData.total_units} تشكيل مسجل`;
+        document.getElementById('orbat-unit-count').textContent = `${cachedOrbatData.total_units} تشكيل مسجل (${cachedOrbatData.country})`;
 
         renderOrbatTree();
 
@@ -2424,7 +2484,7 @@
         container.innerHTML = `
           <div class="text-xs text-gray-500 py-16 text-center">
             <span class="text-2xl block mb-2">🔍</span>
-            لا توجد تشكيلات عسكرية مطابقة لمعايير البحث والتصفية الحالية.
+            لا توجد تشكيلات عسكرية مطابقة لمعايير البحث والتصفية الحالية في هذا الكاتالوج.
           </div>
         `;
         return;
@@ -2459,10 +2519,8 @@
       };
       const readyDot = readinessPills[unit.readiness_status] || '<span class="w-2 h-2 rounded-full bg-emerald-500"></span>';
 
-      const countryFlag = unit.country === 'Egypt' ? '🇪🇬' : (unit.country === 'Libya' ? '🇱🇾' : '🇮🇱');
-
       const cardBorder = isSelected
-        ? 'border-emerald-500 ring-2 ring-emerald-500/40 bg-gray-900'
+        ? 'border-purple-500 ring-2 ring-purple-500/40 bg-gray-900'
         : 'border-gray-800 hover:border-gray-700 bg-gray-900/80';
 
       return `
@@ -2471,28 +2529,32 @@
           <div class="glass-panel p-3 rounded-xl border ${cardBorder} transition duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 cursor-pointer"
             onclick="inspectOrbatUnitById('${unit.id}')">
             
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-2.5 min-w-0">
               <!-- Expand / Collapse Toggle -->
               ${hasChildren ? `
                 <button onclick="event.stopPropagation(); toggleOrbatNodeCollapse('${unit.id}')"
-                  class="w-6 h-6 rounded flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs transition">
+                  class="w-6 h-6 rounded flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs transition flex-shrink-0">
                   ${isCollapsed ? '▶' : '▼'}
                 </button>
               ` : `
-                <span class="w-6 h-6 flex items-center justify-center text-gray-600 text-xs">•</span>
+                <span class="w-6 h-6 flex items-center justify-center text-gray-600 text-xs flex-shrink-0">•</span>
               `}
 
-              <!-- Unit Crest / Badge -->
-              <span class="text-xl p-1 rounded bg-gray-950 border border-gray-800 flex items-center justify-center">${unit.badge_symbol || '🛡️'}</span>
+              <!-- Unit Crest / Badge / Logo -->
+              ${unit.logo_url ? `
+                <img src="${unit.logo_url}" alt="${unit.name_ar}" class="w-8 h-8 object-contain rounded bg-black/70 p-0.5 border border-purple-800/60 shadow flex-shrink-0" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <span class="text-xl p-1 rounded bg-gray-950 border border-gray-800 hidden items-center justify-center flex-shrink-0">${unit.badge_symbol || '🛡️'}</span>
+              ` : `
+                <span class="text-xl p-1 rounded bg-gray-950 border border-gray-800 flex items-center justify-center flex-shrink-0">${unit.badge_symbol || '🛡️'}</span>
+              `}
 
-              <div>
+              <div class="min-w-0">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="text-xs">${countryFlag}</span>
                   <span class="font-bold text-xs text-white">${unit.name_ar}</span>
                   <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border ${echBadge}">${unit.echelon}</span>
                   <span class="text-[10px] text-gray-400 font-mono">${readyDot}</span>
                 </div>
-                <div class="flex items-center gap-2 text-[10px] text-gray-400 font-mono mt-0.5">
+                <div class="flex items-center gap-2 text-[10px] text-gray-400 font-mono mt-0.5 truncate">
                   <span>${unit.name_en}</span>
                   <span>•</span>
                   <span class="text-gray-300">📍 ${unit.hq_location}</span>
@@ -2501,13 +2563,13 @@
             </div>
 
             <!-- Card Right Controls / Status -->
-            <div class="flex items-center gap-2 text-[11px] self-end sm:self-center">
+            <div class="flex items-center gap-2 text-[11px] self-end sm:self-center flex-shrink-0">
               <span class="px-2 py-0.5 rounded bg-gray-950 border border-gray-800 text-gray-300 text-[10px] font-mono">
                 ${unit.branch}
               </span>
               ${hasChildren ? `
                 <span class="px-2 py-0.5 rounded ${isCollapsed ? 'bg-purple-950/80 text-purple-300 border border-purple-800' : 'bg-gray-950 text-gray-400'} text-[10px] font-mono">
-                  ${unit.sub_units.length} تشكيلات فرعية
+                  ${unit.sub_units.length} تشكيلات
                 </span>
               ` : ''}
             </div>
@@ -2544,13 +2606,37 @@
       // Update card elements
       document.getElementById('dossier-echelon').textContent = unit.echelon;
       document.getElementById('dossier-country').textContent = unit.country;
-      document.getElementById('dossier-badge').textContent = unit.badge_symbol || '🛡️';
+
+      // Logo image vs emoji badge
+      const logoImg = document.getElementById('dossier-logo-img');
+      const badgeSpan = document.getElementById('dossier-badge');
+      if (unit.logo_url) {
+        logoImg.src = unit.logo_url;
+        logoImg.classList.remove('hidden');
+        badgeSpan.classList.add('hidden');
+      } else {
+        logoImg.classList.add('hidden');
+        badgeSpan.classList.remove('hidden');
+        badgeSpan.textContent = unit.badge_symbol || '🛡️';
+      }
+
       document.getElementById('dossier-title-ar').textContent = unit.name_ar;
       document.getElementById('dossier-title-en').textContent = `${unit.name_en} [${unit.id}]`;
+      document.getElementById('dossier-native-name').textContent = unit.native_name || '';
       document.getElementById('dossier-location').textContent = unit.hq_location;
       document.getElementById('dossier-commander').textContent = unit.commander || 'غير معلن / هيئة العمليات المشتركة';
       document.getElementById('dossier-readiness').textContent = unit.readiness_status;
       document.getElementById('dossier-mission').textContent = unit.role_and_mission;
+
+      // Secondary emblems & patches
+      const patchesContainer = document.getElementById('dossier-patches');
+      if (unit.logos && unit.logos.length > 1) {
+        patchesContainer.innerHTML = unit.logos.slice(1, 5).map(l => `
+          <img src="${l}" class="w-8 h-8 object-contain rounded p-0.5 bg-black border border-gray-800" onerror="this.style.display='none';" title="شعار إضافي">
+        `).join('');
+      } else {
+        patchesContainer.innerHTML = '';
+      }
 
       // Calculate hierarchy breadcrumb
       const breadcrumb = [];
@@ -2578,12 +2664,12 @@
       if (unit.sub_units && unit.sub_units.length > 0) {
         subContainer.innerHTML = unit.sub_units.map(sub => `
           <div onclick="inspectOrbatUnitById('${sub.id}')"
-            class="p-1.5 rounded bg-gray-950/80 border border-gray-800 hover:border-emerald-700 cursor-pointer flex justify-between items-center transition">
-            <div class="flex items-center gap-1.5">
-              <span>${sub.badge_symbol || '🛡️'}</span>
-              <span class="font-bold text-gray-200 text-[11px]">${sub.name_ar}</span>
+            class="p-1.5 rounded bg-gray-950/80 border border-gray-800 hover:border-purple-600 cursor-pointer flex justify-between items-center transition">
+            <div class="flex items-center gap-1.5 min-w-0">
+              ${sub.logo_url ? `<img src="${sub.logo_url}" class="w-4 h-4 object-contain rounded" onerror="this.style.display='none';">` : `<span>${sub.badge_symbol || '🛡️'}</span>`}
+              <span class="font-bold text-gray-200 text-[11px] truncate">${sub.name_ar}</span>
             </div>
-            <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-gray-900 text-gray-400">${sub.echelon}</span>
+            <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-gray-900 text-gray-400 flex-shrink-0">${sub.echelon}</span>
           </div>
         `).join('');
       } else {
@@ -2594,14 +2680,23 @@
       renderOrbatTree();
     }
 
-    function switchOrbatCountry(country) {
-      currentOrbatCountry = country;
-      document.querySelectorAll('.orbat-c-btn').forEach(btn => {
-        const isCurrent = btn.id === `orbat-c-btn-${country}`;
+    function switchOrbatCatalog(catalogSlug) {
+      currentOrbatCatalog = catalogSlug;
+
+      // Update quick button styles
+      document.querySelectorAll('.orbat-cat-btn').forEach(btn => {
+        const isCurrent = btn.id === `orbat-cat-btn-${catalogSlug}`;
         btn.className = isCurrent
-          ? "orbat-c-btn px-3 py-1.5 rounded-lg bg-purple-600 text-white font-bold transition"
-          : "orbat-c-btn px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition";
+          ? "orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-purple-600 text-white font-bold transition"
+          : "orbat-cat-btn px-2.5 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition";
       });
+
+      // Update select element if present
+      const select = document.getElementById('select-orbat-catalog');
+      if (select && select.value !== catalogSlug) {
+        select.value = catalogSlug;
+      }
+
       loadOrbatTree();
     }
 

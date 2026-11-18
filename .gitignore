@@ -10,3 +10,4 @@ logs/
 *.db
 *.db-shm
 *.db-wal
+data/orbat_cache/

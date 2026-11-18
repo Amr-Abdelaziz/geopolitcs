@@ -1,25 +1,80 @@
 """Order of Battle (ORBAT) Service.
 
-Constructs comprehensive, militarily accurate hierarchical command structures,
-unit dossiers, echelon relationships, and readiness statuses for Egypt, Libya, and Israel.
+Connects directly to GeoConfirmed ORBAT API (https://geoconfirmed.org/api/orbat),
+extracts official military unit insignias/logos/emblems, and provides comprehensive,
+hierarchical command structures for all 21+ global and regional military theaters.
 """
-from typing import Dict, List, Optional
-from packages.schemas.models import OrbatUnit, OrbatTreeResponse
+from __future__ import annotations
+
+import json
+import os
+import urllib.parse
+import urllib.request
+from typing import Any, Dict, List, Optional
+from packages.schemas.models import OrbatCatalogItem, OrbatTreeResponse, OrbatUnit
+
+
+CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "orbat_cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+GEOCONFIRMED_BASE_URL = "https://geoconfirmed.org"
 
 
 class OrbatService:
-    """Provides interactive hierarchical Order of Battle structures and unit dossiers."""
+    """Manages Order of Battle (ORBAT) catalogs, GeoConfirmed live sync, and unit hierarchies."""
+
+    # Curated Catalog Definitions mapping URL slugs to GeoConfirmed node IDs and metadata
+    BUILTIN_CATALOGS: List[Dict[str, Any]] = [
+        {"id": 100, "node_id": 100, "code": "Egypt", "name": "القوات المسلحة المصرية (Egyptian Armed Forces)", "url_name": "egypt", "country": "Egypt", "flag": "🇪🇬", "is_geoconfirmed": False},
+        {"id": 101, "node_id": 101, "code": "Libya", "name": "التشكيلات العسكرية في ليبيا (LNA & GNU)", "url_name": "libya", "country": "Libya", "flag": "🇱🇾", "is_geoconfirmed": False},
+        {"id": 5, "node_id": 34, "code": "Israel", "name": "Israel Defense Forces (IDF)", "url_name": "israel", "country": "Israel", "flag": "🇮🇱", "is_geoconfirmed": True},
+        {"id": 9, "node_id": 38, "code": "PalestinianFactions", "name": "Middle Eastern Factions (فصائل المقاومة والشرق الأوسط)", "url_name": "middleeasternfactions", "country": "Regional", "flag": "🇵🇸", "is_geoconfirmed": True},
+        {"id": 39, "node_id": 10405, "code": "Yemen", "name": "Yemeni Armed Forces & Formations (القوات اليمنية)", "url_name": "yemen", "country": "Yemen", "flag": "🇾🇪", "is_geoconfirmed": True},
+        {"id": 35, "node_id": 6474, "code": "SyriaNew", "name": "Syrian Formations (القوات السورية)", "url_name": "syrianew", "country": "Syria", "flag": "🇸🇾", "is_geoconfirmed": True},
+        {"id": 25, "node_id": 989, "code": "Iran", "name": "Armed Forces of the Islamic Republic of Iran", "url_name": "iran", "country": "Iran", "flag": "🇮🇷", "is_geoconfirmed": True},
+        {"id": 26, "node_id": 1136, "code": "Sudan", "name": "Sudanese Armed Forces (القوات المسلحة السودانية)", "url_name": "sudan", "country": "Sudan", "flag": "🇸🇩", "is_geoconfirmed": True},
+        {"id": 27, "node_id": 1137, "code": "SudanFactions", "name": "Sudan Conflict Factions (قوات الدعم السريع والفصائل)", "url_name": "sudan-factions", "country": "Sudan", "flag": "🇸🇩", "is_geoconfirmed": True},
+        {"id": 10, "node_id": 24, "code": "Russia", "name": "Russian Armed Forces (القوات المسلحة الروسية)", "url_name": "russia", "country": "Russia", "flag": "🇷🇺", "is_geoconfirmed": True},
+        {"id": 31, "node_id": 4339, "code": "US", "name": "United States Armed Forces", "url_name": "us", "country": "United States", "flag": "🇺🇸", "is_geoconfirmed": True},
+        {"id": 15, "node_id": 33, "code": "Ukraine", "name": "Ukrainian Armed Forces (ZSU)", "url_name": "ukraine", "country": "Ukraine", "flag": "🇺🇦", "is_geoconfirmed": True},
+        {"id": 1039, "node_id": 11456, "code": "ENDF", "name": "Ethiopian National Defense Force (ENDF)", "url_name": "endf", "country": "Ethiopia", "flag": "🇪🇹", "is_geoconfirmed": True},
+        {"id": 2, "node_id": 36, "code": "China", "name": "Chinese People's Liberation Army (PLA)", "url_name": "china", "country": "China", "flag": "🇨🇳", "is_geoconfirmed": True},
+        {"id": 36, "node_id": 6825, "code": "France", "name": "French Armed Forces", "url_name": "france", "country": "France", "flag": "🇫🇷", "is_geoconfirmed": True},
+        {"id": 38, "node_id": 9282, "code": "Terrorist", "name": "Militant / Irregular Factions", "url_name": "terroristmilitant", "country": "Regional", "flag": "⚠️", "is_geoconfirmed": True},
+        {"id": 37, "node_id": 9276, "code": "Fama", "name": "Malian Armed Forces (FAMa)", "url_name": "fama", "country": "Mali", "flag": "🇲🇱", "is_geoconfirmed": True},
+        {"id": 34, "node_id": 6034, "code": "KHM", "name": "Royal Cambodian Armed Forces", "url_name": "cambodia", "country": "Cambodia", "flag": "🇰🇭", "is_geoconfirmed": True},
+        {"id": 33, "node_id": 6033, "code": "THA", "name": "Royal Thai Armed Forces", "url_name": "thailand", "country": "Thailand", "flag": "🇹🇭", "is_geoconfirmed": True},
+        {"id": 11, "node_id": 52, "code": "Rwanda", "name": "Rwanda Defence Force", "url_name": "rwanda", "country": "Rwanda", "flag": "🇷🇼", "is_geoconfirmed": True},
+        {"id": 32, "node_id": 4340, "code": "VEN", "name": "National Bolivarian Armed Forces (FANB)", "url_name": "ven", "country": "Venezuela", "flag": "🇻🇪", "is_geoconfirmed": True},
+        {"id": 29, "node_id": 2048, "code": "Myanmar", "name": "Myanmar Armed Forces (Tatmadaw)", "url_name": "myanmar", "country": "Myanmar", "flag": "🇲🇲", "is_geoconfirmed": True},
+        {"id": 28, "node_id": 2047, "code": "MyanmarO", "name": "Myanmar Opposition Forces", "url_name": "myanmaro", "country": "Myanmar", "flag": "🇲🇲", "is_geoconfirmed": True}
+    ]
 
     def __init__(self):
-        self._units: Dict[str, OrbatUnit] = {}
-        self._init_database()
+        self._local_units: Dict[str, OrbatUnit] = {}
+        self._cached_trees: Dict[str, OrbatTreeResponse] = {}
+        self._init_local_egypt_and_libya()
 
-    def _init_database(self):
-        """Seed high-fidelity ORBAT units for target countries."""
-        all_units: List[OrbatUnit] = [
-            # =========================================================================
-            # 🇪🇬 EGYPTIAN ARMED FORCES (EAF) - القوات المسلحة المصرية
-            # =========================================================================
+    def get_catalogs(self) -> List[OrbatCatalogItem]:
+        """Return all available ORBAT catalogs (GeoConfirmed + Local)."""
+        items: List[OrbatCatalogItem] = []
+        for cat in self.BUILTIN_CATALOGS:
+            items.append(OrbatCatalogItem(
+                id=cat["id"],
+                code=cat["code"],
+                name=cat["name"],
+                url_name=cat["url_name"],
+                node_id=cat["node_id"],
+                country=cat["country"],
+                flag=cat.get("flag", "🌐"),
+                is_geoconfirmed=cat["is_geoconfirmed"]
+            ))
+        return items
+
+    def _init_local_egypt_and_libya(self):
+        """Seed high-fidelity Egyptian Armed Forces & Libyan Formations with official emblems."""
+        units: List[OrbatUnit] = [
+            # ── EGYPTIAN ARMED FORCES (EAF) ──
             OrbatUnit(
                 id="EAF-GHQ",
                 name_ar="القيادة العامة للقوات المسلحة المصرية",
@@ -34,10 +89,10 @@ class OrbatService:
                 readiness_status="High Readiness",
                 parent_id=None,
                 badge_symbol="🦅",
-                badge_color="#10b981"
+                badge_color="#10b981",
+                logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Eagle_of_Saladin_%28Egyptian_Armed_Forces%29.svg/200px-Eagle_of_Saladin_%28Egyptian_Armed_Forces%29.svg.png",
+                logos=["https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Eagle_of_Saladin_%28Egyptian_Armed_Forces%29.svg/200px-Eagle_of_Saladin_%28Egyptian_Armed_Forces%29.svg.png"]
             ),
-
-            # --- EAF: Western Military Zone (الاتجاه الاستراتيجي الغربي والحدود الليبية) ---
             OrbatUnit(
                 id="EAF-WEST-ZONE",
                 name_ar="قيادة المنطقة الغربية العسكرية",
@@ -52,7 +107,8 @@ class OrbatService:
                 readiness_status="High Readiness",
                 parent_id="EAF-GHQ",
                 badge_symbol="🛡️",
-                badge_color="#10b981"
+                badge_color="#10b981",
+                logo_url="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Eagle_of_Saladin_%28Egyptian_Armed_Forces%29.svg/200px-Eagle_of_Saladin_%28Egyptian_Armed_Forces%29.svg.png"
             ),
             OrbatUnit(
                 id="EAF-BDE-BORDER-WEST",
@@ -119,7 +175,7 @@ class OrbatService:
                 badge_color="#0d9488"
             ),
 
-            # --- EAF: 2nd Field Army (الجيش الثاني الميداني - شمال ووسط سيناء وقناة السويس) ---
+            # ── 2nd Field Army ──
             OrbatUnit(
                 id="EAF-2ND-ARMY",
                 name_ar="قيادة الجيش الثاني الميداني",
@@ -185,7 +241,7 @@ class OrbatService:
                 badge_color="#047857"
             ),
 
-            # --- EAF: 3rd Field Army (الجيش الثالث الميداني - جنوب سيناء والبحر الأحمر) ---
+            # ── 3rd Field Army ──
             OrbatUnit(
                 id="EAF-3RD-ARMY",
                 name_ar="قيادة الجيش الثالث الميداني",
@@ -235,7 +291,7 @@ class OrbatService:
                 badge_color="#059669"
             ),
 
-            # --- EAF: Strategic Naval Fleets & Berenice Base (القوات البحرية وقاعدة برنيس) ---
+            # ── Navy Southern Fleet & Berenice Base ──
             OrbatUnit(
                 id="EAF-NAVY-SOUTH",
                 name_ar="قيادة الأسطول الجنوبي وقاعدة برنيس العسكرية",
@@ -253,7 +309,7 @@ class OrbatService:
                 badge_color="#0284c7"
             ),
 
-            # --- EAF: Special Operations & Elite Forces (قوات الصاعقة والمظلات والتدخل السريع) ---
+            # ── Special Forces ──
             OrbatUnit(
                 id="EAF-SOF-CMD",
                 name_ar="قيادة قوات الصاعقة والمظلات وقوات التدخل السريع",
@@ -302,8 +358,6 @@ class OrbatService:
                 badge_symbol="🦅",
                 badge_color="#d97706"
             ),
-
-            # --- EAF: Strategic Air Force & Air Defense Command ---
             OrbatUnit(
                 id="EAF-AIRFORCE",
                 name_ar="قيادة القوات الجوية المصرية",
@@ -337,11 +391,7 @@ class OrbatService:
                 badge_color="#0d9488"
             ),
 
-
-            # =========================================================================
-            # 🇱🇾 LIBYAN ARMED FORMATIONS (LNA & GNU) - التشكيلات العسكرية في ليبيا
-            # =========================================================================
-            # --- Libyan National Army (القيادة العامة بالشرق - LNA) ---
+            # ── LIBYAN FORMATIONS ──
             OrbatUnit(
                 id="LNA-GHQ",
                 name_ar="القيادة العامة للقوات المسلحة بالشرق الليبي (LNA)",
@@ -407,24 +457,6 @@ class OrbatService:
                 badge_color="#b45309"
             ),
             OrbatUnit(
-                id="LNA-SOF-SAIQA",
-                name_ar="القوات الخاصة والصاعقة الليبية",
-                name_en="LNA Special Forces (Al-Saiqa)",
-                country="Libya",
-                echelon="Special_Unit",
-                branch="Special Forces",
-                hq_location="بنغازي",
-                commander="آمر القوات الخاصة",
-                role_and_mission="مكافحة التشكيلات المسلحة المتطرفة وتنفيذ الإغارات الليلية وحماية المقرات القيادية الحساسة.",
-                equipment=["أسلحة قنص واقتحام متطورة", "مركبات مدرعة خفيفة", "أجهزة رصد ليلي وتتبع ميداني"],
-                readiness_status="High Readiness",
-                parent_id="LNA-GHQ",
-                badge_symbol="⚡",
-                badge_color="#b45309"
-            ),
-
-            # --- Government of National Unity & Western Tripoli Formations (قوات الغرب - GNU) ---
-            OrbatUnit(
                 id="GNU-GHQ",
                 name_ar="رئاسة الأركان العامة وقوات الغرب الليبي (طرابلس)",
                 name_en="GNU General Staff & Western Tripoli Formations",
@@ -471,245 +503,262 @@ class OrbatService:
                 parent_id="GNU-GHQ",
                 badge_symbol="🛡️",
                 badge_color="#d97706"
-            ),
-            OrbatUnit(
-                id="GNU-JOINT-MISRATA",
-                name_ar="القوة المشتركة مصراتة ولواء المحجوب",
-                name_en="Misrata Joint Force & Central Operations",
-                country="Libya",
-                echelon="Brigade",
-                branch="Ground",
-                hq_location="مصراتة / محاور سرت",
-                commander="قيادة القوة المشتركة بمصراتة",
-                role_and_mission="تأمين مدينة مصراتة ومينائها البحري الحيوي وخط الدفاع الشرقي على مشارف سرت وأبوقرين.",
-                equipment=["دبابات T-55 المطورة", "مدافع مضادة للطائرات محملة على مركبات رباعية", "صواريخ ميلان وتاو المضادة للدروع"],
-                readiness_status="Patrol/Deterrence",
-                parent_id="GNU-GHQ",
-                badge_symbol="⚓",
-                badge_color="#d97706"
-            ),
-
-
-            # =========================================================================
-            # 🇮🇱 ISRAEL DEFENSE FORCES (IDF) - SOUTHERN THEATRE - القيادة الجنوبية
-            # =========================================================================
-            OrbatUnit(
-                id="IDF-GENERAL-STAFF",
-                name_ar="هيئة الأركان العامة لجيش الدفاع الإسرائيلي (Matkal)",
-                name_en="IDF General Staff (Matkal / Kirya Command)",
-                country="Israel",
-                echelon="GHQ",
-                branch="Joint",
-                hq_location="مجمع الكرياه - تل أبيب",
-                commander="رئيس هيئة الأركان العامة (Ramatkal)",
-                role_and_mission="القيادة والتخطيط الاستراتيجي الشامل للعمليات العسكرية المشتركة على كافة الجبهات الشمالية والجنوبية والداخلية.",
-                equipment=["منظومات C4I المتكاملة للجيش الرقمي", "شبكات الاستخبارات العسكرية أمان (Aman / Unit 8200)", "منظومات الحيتس (Arrow 3) ومقلاع داوود والقبة الحديدية"],
-                readiness_status="High Readiness",
-                parent_id=None,
-                badge_symbol="🇮🇱",
-                badge_color="#06b6d4"
-            ),
-            OrbatUnit(
-                id="IDF-SOUTH-CMD",
-                name_ar="قيادة المنطقة الجنوبية بالجيش الإسرائيلي (Pikud Darom)",
-                name_en="IDF Southern Command (Pikud Darom)",
-                country="Israel",
-                echelon="Theatre",
-                branch="Joint",
-                hq_location="بئر السبع / معسكر فيلادلفيا الجنوبي",
-                commander="قائد القيادة الجنوبية (Aluf)",
-                role_and_mission="إدارة مسرح العمليات القتالية في قطاع غزة، وتأمين الحدود المشتركة مع مصر (شبه جزيرة سيناء)، وخليج إيلات والبحر الأحمر.",
-                equipment=["دبابات قتال رئيسية Merkava Mk 4M و Barak", "ناقلات جند ثقيلة Namer ومدرعات Eitan", "طائرات مسيرة هجومية Hermes 900 و Eitan"],
-                readiness_status="Active Combat",
-                parent_id="IDF-GENERAL-STAFF",
-                badge_symbol="⚔️",
-                badge_color="#0891b2"
-            ),
-            OrbatUnit(
-                id="IDF-DIV-143-GAZA",
-                name_ar="فرقة الثعلب (فرقة غزة - Division 143)",
-                name_en="143rd Gaza Territorial Division (Foxes of Shimshon)",
-                country="Israel",
-                echelon="Division",
-                branch="Ground",
-                hq_location="محيط قطاع غزة / معسكر ريعيم",
-                commander="قائد فرقة غزة (Tat Aluf)",
-                role_and_mission="قيادة العمليات الميدانية داخل قطاع غزة، والسيطرة التكتيكية على معبر كرم أبو سالم ومحور فيلادلفيا الحدودي.",
-                equipment=["دبابات ميركافا مجهزة بمنظومة تروفي Trophy للقتل الصعب", "جرافات مدرعة D9R المحصنة", "أنظمة رادار رصد أهداف أرضية تكتيكية"],
-                readiness_status="Active Combat",
-                parent_id="IDF-SOUTH-CMD",
-                badge_symbol="🦊",
-                badge_color="#0891b2"
-            ),
-            OrbatUnit(
-                id="IDF-DIV-80-EDOM",
-                name_ar="فرقة إيدوم التعبوية (Division 80 - حدود سيناء والبحر الأحمر)",
-                name_en="80th Edom Territorial Division (Sinai & Red Sea Border)",
-                country="Israel",
-                echelon="Division",
-                branch="Border Guard",
-                hq_location="جنوب النقب / عوفدا / إيلات",
-                commander="قائد فرقة إيدوم",
-                role_and_mission="تأمين خط الهدنة والحدود الدولية المقابلة لشبه جزيرة سيناء المصرية، وتأمين خليج إيلات ومنع التهديدات القادمة من البحر الأحمر واليمن.",
-                equipment=["مركبات مصفحة طراز Wolf و David", "بطاريات القبة الحديدية البحرية والبرية", "كتائب الاستطلاع والمراقبة التكتيكية الميدانية"],
-                readiness_status="High Readiness",
-                parent_id="IDF-SOUTH-CMD",
-                badge_symbol="🛡️",
-                badge_color="#0891b2"
-            ),
-            OrbatUnit(
-                id="IDF-BDE-GIVATI",
-                name_ar="لواء جفعاتي المشاة الميكانيكي النخبوي",
-                name_en="Givati Infantry Brigade (Brigade 84)",
-                country="Israel",
-                echelon="Brigade",
-                branch="Ground",
-                hq_location="مسرح العمليات الجنوبي",
-                commander="قائد لواء جفعاتي",
-                role_and_mission="قوة رأس الحربة للاقتحام والقتال في المناطق المبنية والمعقدة وتطهير الأنفاق والمواقع المحصنة.",
-                equipment=["ناقلات مدرعة ثقيلة نامير Namer", "أسلحة Tavor X95 الهجومية", "صواريخ سبايك Spike الموجهة بدقة"],
-                readiness_status="Active Combat",
-                parent_id="IDF-DIV-143-GAZA",
-                badge_symbol="⚔️",
-                badge_color="#06b6d4"
-            ),
-            OrbatUnit(
-                id="IDF-BDE-401",
-                name_ar="اللواء 401 مدرع (المسار الحديدي - دبابات ميركافا باراك)",
-                name_en="401st Armored Brigade (Iron Tracks)",
-                country="Israel",
-                echelon="Brigade",
-                branch="Ground",
-                hq_location="مسرح العمليات الجنوبي",
-                commander="قائد اللواء 401 مدرع",
-                role_and_mission="الفرقة المدرعة الضاربة التابعة للفرقة 162، تنفيذ المناورة المدرعة العميقة والاشتباك المباشر وتأمين معابر الإمداد.",
-                equipment=["دبابات Merkava Mk 4M مع Trophy", "دبابات Barak جيل خامس مع خوذات IronVision", "مركبات استطلاع مدرعة"],
-                readiness_status="Active Combat",
-                parent_id="IDF-DIV-143-GAZA",
-                badge_symbol="🛡️",
-                badge_color="#06b6d4"
-            ),
-            OrbatUnit(
-                id="IDF-CORP-YAHALOM",
-                name_ar="وحدة الهندسة الخاصة للأنفاق والمتفجرات (ياهالوم)",
-                name_en="Yahalom Special Combat Engineering Unit",
-                country="Israel",
-                echelon="Special_Unit",
-                branch="Special Forces",
-                hq_location="معسكر سيركين / الجبهة الجنوبية",
-                commander="قائد وحدة ياهالوم",
-                role_and_mission="تفكيك شبكات الأنفاق تحت الأرض، نزع حقول الألغام المعقدة، والعمليات التخريبية الدقيقة خلف خطوط المواجهة.",
-                equipment=["روبوتات استكشاف الأنفاق PackBot", "رادارات اختراق الأرض GPR", "متفجرات موجهة وكبسولات إغلاق الأنفاق"],
-                readiness_status="Active Combat",
-                parent_id="IDF-SOUTH-CMD",
-                badge_symbol="💣",
-                badge_color="#0e7490"
-            ),
-            OrbatUnit(
-                id="IDF-AIR-NEVATIM",
-                name_ar="قاعدة نيفاتيم الجوية (أسراب F-35I Adir)",
-                name_en="Nevatim Air Base (F-35I Stealth Squadrons)",
-                country="Israel",
-                echelon="Base",
-                branch="Air Force",
-                hq_location="صحراء النقب / جنوب إسرائيل",
-                commander="قائد قاعدة نيفاتيم الجوية",
-                role_and_mission="الضربات الجوية الشبحية بعيدة المدى، السيطرة والاعتراض الجوي، وجمع الاستخبارات الإلكترونية فوق مسارح العمليات الإقليمية.",
-                equipment=["أسراب F-35I Adir الشبحية", "طائرات الإنذار المبكر والتجسس Gulfstream G550 Eitam/Oron", "طائرات النقل والتزود بالوقود C-130J و KC-46"],
-                readiness_status="High Readiness",
-                parent_id="IDF-GENERAL-STAFF",
-                badge_symbol="✈️",
-                badge_color="#38bdf8"
-            ),
-            OrbatUnit(
-                id="IDF-NAVY-EILAT",
-                name_ar="سرب الدورية البحرية وقاعدة إيلات (البحر الأحمر)",
-                name_en="Eilat Naval Squadron 915 & Red Sea Base",
-                country="Israel",
-                echelon="Base",
-                branch="Naval",
-                hq_location="ميناء وقاعدة إيلات البحرية",
-                commander="قائد سرب 915 بحري",
-                role_and_mission="حماية المنفذ البحري الجنوبي لإسرائيل وميناء إيلات، واعتراض التهديدات البحرية والمسيرات والصواريخ في خليج العقبة.",
-                equipment=["زوارق الدورية السريعة Super Dvora Mk III", "سفن الصواريخ Sa'ar 5 و Sa'ar 6 مع القبة الحديدية C-Dome", "أنظمة رادار وسونار ساحلية"],
-                readiness_status="High Readiness",
-                parent_id="IDF-SOUTH-CMD",
-                badge_symbol="⚓",
-                badge_color="#0284c7"
             )
         ]
 
-        for u in all_units:
-            self._units[u.id] = u
+        for u in units:
+            self._local_units[u.id] = u
+
+    def fetch_geoconfirmed_node_data(self, node_id: int) -> Optional[Dict[str, Any]]:
+        """Fetch node tree from GeoConfirmed or read from disk cache."""
+        cache_file = os.path.join(CACHE_DIR, f"geoconfirmed_node_{node_id}.json")
+        if os.path.exists(cache_file):
+            try:
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
+
+        url = f"{GEOCONFIRMED_BASE_URL}/api/orbatnode/{node_id}"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            with urllib.request.urlopen(req, timeout=15) as response:
+                content = response.read().decode("utf-8")
+                data = json.loads(content)
+                with open(cache_file, "w", encoding="utf-8") as f:
+                    f.write(content)
+                return data
+        except Exception as e:
+            print(f"[OrbatService] Failed to fetch GeoConfirmed node {node_id}: {e}")
+            return None
+
+    def _convert_geoconfirmed_node(self, raw: Dict[str, Any], country_name: str, parent_id: Optional[str] = None) -> OrbatUnit:
+        """Recursively transform a GeoConfirmed node dictionary into an OrbatUnit."""
+        unit_id = f"GC-{raw.get('id')}"
+        name = raw.get("name") or "Unnamed Formation"
+        native_name = raw.get("nativeName")
+        org_level = raw.get("organizationLevel") or self._infer_echelon(name)
+
+        # Parse logos & emblems
+        emblems = [x.strip() for x in (raw.get("emblems") or "").split(",") if x.strip()]
+        patches = [x.strip() for x in (raw.get("patches") or "").split(",") if x.strip()]
+        all_raw_logos = emblems + patches
+
+        resolved_logos: List[str] = []
+        for l in all_raw_logos:
+            if l.startswith("http://") or l.startswith("https://"):
+                resolved_logos.append(l)
+            else:
+                path = l if l.startswith("/") else f"/{l}"
+                resolved_logos.append(f"{GEOCONFIRMED_BASE_URL}{path}")
+
+        primary_logo = resolved_logos[0] if resolved_logos else None
+
+        # Equipment parsing
+        equipment: List[str] = []
+        if raw.get("gear"):
+            equipment.extend([g.strip() for g in str(raw.get("gear")).split(",") if g.strip()][:8])
+        if raw.get("gearItems") and isinstance(raw.get("gearItems"), list):
+            for gi in raw.get("gearItems")[:6]:
+                if isinstance(gi, dict) and gi.get("name"):
+                    equipment.append(gi.get("name"))
+
+        role_mission = raw.get("remarks") or f"التشكيل العسكري الرسمي التابع لمسرح العمليات ({country_name})."
+
+        unit = OrbatUnit(
+            id=unit_id,
+            name_ar=native_name or name,
+            name_en=name,
+            native_name=native_name,
+            country=country_name,
+            echelon=org_level,
+            branch=raw.get("branch") or self._infer_branch(name),
+            hq_location=raw.get("homeBase") or "مسرح العمليات الميداني",
+            commander=None,
+            role_and_mission=role_mission,
+            equipment=equipment,
+            readiness_status="High Readiness" if not raw.get("isDisbanded") else "Standby",
+            parent_id=parent_id,
+            badge_symbol="🛡️" if not primary_logo else "🎖️",
+            badge_color=raw.get("color") or "#8b5cf6",
+            logo_url=primary_logo,
+            logos=resolved_logos,
+            unit_number=raw.get("unitNumber"),
+            sources=raw.get("sources"),
+            geoconfirmed_id=raw.get("id"),
+            sub_units=[]
+        )
+
+        children = raw.get("children") or []
+        for child in children:
+            if isinstance(child, dict) and not child.get("isDeleted"):
+                child_unit = self._convert_geoconfirmed_node(child, country_name, parent_id=unit_id)
+                unit.sub_units.append(child_unit)
+
+        return unit
+
+    def _infer_echelon(self, name: str) -> str:
+        """Infer military echelon from formation name."""
+        nl = name.lower()
+        if any(k in nl for k in ["general staff", "supreme", "headquarters", "ghq", "command"]):
+            return "GHQ"
+        if "army" in nl or "theatre" in nl or "district" in nl:
+            return "Army"
+        if "corps" in nl:
+            return "Corps"
+        if "division" in nl or "flotilla" in nl:
+            return "Division"
+        if "brigade" in nl or "wing" in nl or "task force" in nl:
+            return "Brigade"
+        if "regiment" in nl or "group" in nl:
+            return "Regiment"
+        if "battalion" in nl or "squadron" in nl or "flot" in nl:
+            return "Battalion"
+        if "base" in nl:
+            return "Base"
+        if any(k in nl for k in ["special", "commando", "recon", "sof", "spetsnaz"]):
+            return "Special_Unit"
+        return "Division"
+
+    def _infer_branch(self, name: str) -> str:
+        """Infer branch of service from name."""
+        nl = name.lower()
+        if any(k in nl for k in ["naval", "fleet", "sea", "marine", "submarine"]):
+            return "Naval"
+        if any(k in nl for k in ["air force", "aviation", "aerospace", "fighter", "bomber"]):
+            return "Air Force"
+        if any(k in nl for k in ["air defense", "anti-aircraft", "missile", "radar"]):
+            return "Air Defense"
+        if any(k in nl for k in ["special", "commando", "recon", "sof", "spetsnaz"]):
+            return "Special Forces"
+        if any(k in nl for k in ["border", "customs", "guard"]):
+            return "Border Guard"
+        return "Ground"
 
     def get_unit(self, unit_id: str) -> Optional[OrbatUnit]:
-        """Retrieve a specific unit dossier by ID."""
-        return self._units.get(unit_id)
+        """Retrieve unit dossier by ID from local database or cached GeoConfirmed trees."""
+        if unit_id in self._local_units:
+            return self._local_units[unit_id]
+
+        for tree in self._cached_trees.values():
+            if tree.flat_units:
+                for u in tree.flat_units:
+                    if u.id == unit_id:
+                        return u
+        return None
 
     def get_orbat_tree(
         self,
+        catalog: Optional[str] = None,
         country: Optional[str] = None,
         branch: Optional[str] = None,
         search: Optional[str] = None
     ) -> OrbatTreeResponse:
-        """Construct hierarchical tree with recursive sub-units and optional filters."""
-        # Filter units
-        units_pool = list(self._units.values())
+        """Fetch or construct hierarchical ORBAT with full GeoConfirmed logos and filters."""
+        catalogs = self.get_catalogs()
+        target_slug = (catalog or country or "Egypt").lower().strip()
 
-        if country and country.lower() != "all":
-            units_pool = [u for u in units_pool if u.country.lower() == country.lower()]
+        # Check if requesting local Egypt or Libya
+        if target_slug in ["egypt", "libya", "all"]:
+            units_pool = list(self._local_units.values())
+            if target_slug != "all":
+                units_pool = [u for u in units_pool if u.country.lower() == target_slug]
 
-        if branch and branch.lower() != "all":
-            units_pool = [u for u in units_pool if u.branch.lower() == branch.lower()]
+            if branch and branch.lower() != "all":
+                units_pool = [u for u in units_pool if u.branch.lower() == branch.lower()]
 
-        if search and search.strip():
-            q = search.lower().strip()
-            units_pool = [
-                u for u in units_pool
-                if q in u.name_ar.lower()
-                or q in u.name_en.lower()
-                or q in u.hq_location.lower()
-                or q in u.role_and_mission.lower()
-                or any(q in eq.lower() for eq in u.equipment)
-            ]
+            if search and search.strip():
+                q = search.lower().strip()
+                units_pool = [
+                    u for u in units_pool
+                    if q in u.name_ar.lower()
+                    or q in u.name_en.lower()
+                    or q in u.hq_location.lower()
+                    or any(q in eq.lower() for eq in u.equipment)
+                ]
 
-        # Build ID lookup
-        pool_ids = {u.id for u in units_pool}
+            cloned_map: Dict[str, OrbatUnit] = {}
+            for u in units_pool:
+                cloned = OrbatUnit(**u.model_dump())
+                cloned.sub_units = []
+                cloned_map[u.id] = cloned
 
-        # Clone units without sub_units initially
-        cloned_map: Dict[str, OrbatUnit] = {}
-        for u in units_pool:
-            cloned = OrbatUnit(
-                id=u.id,
-                name_ar=u.name_ar,
-                name_en=u.name_en,
-                country=u.country,
-                echelon=u.echelon,
-                branch=u.branch,
-                hq_location=u.hq_location,
-                commander=u.commander,
-                role_and_mission=u.role_and_mission,
-                equipment=list(u.equipment),
-                readiness_status=u.readiness_status,
-                parent_id=u.parent_id,
-                badge_symbol=u.badge_symbol,
-                badge_color=u.badge_color,
-                sub_units=[]
+            roots: List[OrbatUnit] = []
+            for u in cloned_map.values():
+                if u.parent_id and u.parent_id in cloned_map:
+                    cloned_map[u.parent_id].sub_units.append(u)
+                else:
+                    roots.append(u)
+
+            resp = OrbatTreeResponse(
+                country=target_slug.title(),
+                total_units=len(units_pool),
+                roots=roots,
+                flat_units=list(cloned_map.values()),
+                catalogs=catalogs,
+                active_catalog=target_slug
             )
-            cloned_map[u.id] = cloned
+            self._cached_trees[target_slug] = resp
+            return resp
 
-        # Link children to parents
-        roots: List[OrbatUnit] = []
-        for u in cloned_map.values():
-            if u.parent_id and u.parent_id in cloned_map:
-                cloned_map[u.parent_id].sub_units.append(u)
-            else:
-                # Root unit (either no parent or parent filtered out)
-                roots.append(u)
+        # Find matching GeoConfirmed catalog
+        matched_cat = next((c for c in self.BUILTIN_CATALOGS if c["url_name"].lower() == target_slug or c["code"].lower() == target_slug or c["country"].lower() == target_slug), None)
+        if not matched_cat:
+            matched_cat = next((c for c in self.BUILTIN_CATALOGS if c["code"] == "Israel"), None)
 
-        return OrbatTreeResponse(
-            country=country or "All",
-            total_units=len(units_pool),
+        node_id = matched_cat["node_id"]
+        raw_tree = self.fetch_geoconfirmed_node_data(node_id)
+        if not raw_tree:
+            # Fallback to local units
+            return self.get_orbat_tree(catalog="egypt")
+
+        # Convert GeoConfirmed root tree
+        root_unit = self._convert_geoconfirmed_node(raw_tree, matched_cat["country"])
+
+        # Flatten units for indexing and filtering
+        flat_list: List[OrbatUnit] = []
+
+        def flatten(u: OrbatUnit):
+            flat_list.append(u)
+            for ch in u.sub_units:
+                flatten(ch)
+
+        flatten(root_unit)
+
+        # Apply search or branch filtering if requested
+        if (branch and branch.lower() != "all") or (search and search.strip()):
+            q = (search or "").lower().strip()
+            b = (branch or "").lower().strip()
+
+            def passes_filter(u: OrbatUnit) -> bool:
+                match_branch = (b == "all" or not b or u.branch.lower() == b)
+                match_search = (not q or q in u.name_ar.lower() or q in u.name_en.lower() or q in u.hq_location.lower() or any(q in eq.lower() for eq in u.equipment))
+                return match_branch and match_search
+
+            def filter_tree(u: OrbatUnit) -> Optional[OrbatUnit]:
+                filtered_children = []
+                for ch in u.sub_units:
+                    f_ch = filter_tree(ch)
+                    if f_ch:
+                        filtered_children.append(f_ch)
+                if passes_filter(u) or filtered_children:
+                    cloned = OrbatUnit(**u.model_dump())
+                    cloned.sub_units = filtered_children
+                    return cloned
+                return None
+
+            filtered_root = filter_tree(root_unit)
+            roots = [filtered_root] if filtered_root else []
+        else:
+            roots = [root_unit]
+
+        resp = OrbatTreeResponse(
+            country=matched_cat["name"],
+            total_units=len(flat_list),
             roots=roots,
-            flat_units=list(cloned_map.values())
+            flat_units=flat_list,
+            catalogs=catalogs,
+            active_catalog=matched_cat["url_name"]
         )
+        self._cached_trees[matched_cat["url_name"]] = resp
+        return resp

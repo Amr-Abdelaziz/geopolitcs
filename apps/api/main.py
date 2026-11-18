@@ -31,6 +31,7 @@ from packages.schemas.models import (
     WargameRequest,
     WargameSimulationResult,
     KnowledgeGraph,
+    OrbatCatalogItem,
     OrbatTreeResponse,
     OrbatUnit,
 )
@@ -376,14 +377,21 @@ async def run_wargame_simulation(request: WargameRequest) -> WargameSimulationRe
 
 # --- Order of Battle (ORBAT) Engine ---
 
+@app.get("/api/orbat/catalogs", response_model=List[OrbatCatalogItem])
+async def list_orbat_catalogs():
+    """List all supported Order of Battle catalogs (GeoConfirmed + Local)."""
+    return orbat_service.get_catalogs()
+
+
 @app.get("/api/orbat", response_model=OrbatTreeResponse)
 async def get_orbat_tree(
-    country: Optional[str] = Query("All", description="Target country: Egypt, Libya, Israel, or All"),
+    catalog: Optional[str] = Query(None, description="Catalog slug: egypt, libya, israel, russia, middleeasternfactions, yemen, iran, sudan, us, ukraine, endf"),
+    country: Optional[str] = Query(None, description="Target country or catalog slug"),
     branch: Optional[str] = Query("All", description="Branch filter: Ground, Naval, Air Force, Air Defense, Special Forces, Border Guard, or All"),
     search: Optional[str] = Query(None, description="Search query across unit name, role, equipment, or location")
 ) -> OrbatTreeResponse:
-    """Return hierarchical Order of Battle (ORBAT) command structure and echelons."""
-    return orbat_service.get_orbat_tree(country=country, branch=branch, search=search)
+    """Return hierarchical Order of Battle (ORBAT) command structure with official logos."""
+    return orbat_service.get_orbat_tree(catalog=catalog, country=country, branch=branch, search=search)
 
 
 @app.get("/api/orbat/{unit_id}", response_model=OrbatUnit)

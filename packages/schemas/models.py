@@ -372,11 +372,23 @@ class WargameSimulationResult(BaseModel):
 
 # --- Order of Battle (ORBAT) Models ---
 
+class OrbatCatalogItem(BaseModel):
+    id: int
+    code: str
+    name: str
+    url_name: str
+    node_id: int
+    country: str
+    flag: str = "🌐"
+    is_geoconfirmed: bool = True
+    unit_count: Optional[int] = None
+
+
 class OrbatUnit(BaseModel):
     id: str
     name_ar: str
     name_en: str
-    country: str  # Egypt, Libya, Israel
+    country: str  # Egypt, Libya, Israel, Russia, etc.
     echelon: str  # GHQ, Theatre, Army, Corps, Division, Brigade, Regiment, Base, Special_Unit
     branch: str  # Joint, Ground, Naval, Air Force, Air Defense, Special Forces, Border Guard
     hq_location: str
@@ -387,6 +399,12 @@ class OrbatUnit(BaseModel):
     parent_id: Optional[str] = None
     badge_symbol: str = "🛡️"
     badge_color: str = "#10b981"
+    logo_url: Optional[str] = None
+    logos: List[str] = Field(default_factory=list)
+    native_name: Optional[str] = None
+    unit_number: Optional[str] = None
+    sources: Optional[str] = None
+    geoconfirmed_id: Optional[int] = None
     sub_units: List["OrbatUnit"] = Field(default_factory=list)
 
 
@@ -395,3 +413,5 @@ class OrbatTreeResponse(BaseModel):
     total_units: int
     roots: List[OrbatUnit] = Field(default_factory=list)
     flat_units: Optional[List[OrbatUnit]] = None
+    catalogs: Optional[List[OrbatCatalogItem]] = None
+    active_catalog: Optional[str] = None
