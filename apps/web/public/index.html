@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strategic OSIRIS | خلية التحليل الاستراتيجي والاستخبارات</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Cairo and Inter Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            osiris: {
+              bg: '#0a0d14',
+              surface: '#111726',
+              border: '#1f293d',
+              accent: '#10b981',
+              warning: '#f59e0b',
+              danger: '#ef4444',
+              info: '#06b6d4',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0d14; color: #e2e8f0; font-family: 'Cairo', sans-serif; }
+    .glass-panel { background: rgba(17, 23, 38, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(31, 41, 61, 0.8); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0a0d14; }
+    ::-webkit-scrollbar-thumb { background: #1f293d; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #374151; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-osiris-border bg-osiris-surface/90 sticky top-0 z-50 px-6 py-3 flex flex-wrap justify-between items-center">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xl">
+        Ψ
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold tracking-wide text-lg text-white">STRATEGIC OSIRIS</span>
+          <span class="px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/40">SIFP v1.0</span>
+        </div>
+        <p class="text-xs text-gray-400">منظومة الاستخبارات والتحليل الاستراتيجي متعددة الوكلاء (مصر • ليبيا • إسرائيل)</p>
+      </div>
+    </div>
+
+    <!-- Active Indicators Pill -->
+    <div class="flex items-center gap-2 text-xs font-mono">
+      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-900 border border-gray-800">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-gray-300">🇪🇬 مصر: مستقر</span>
+      </div>
+      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-900 border border-gray-800">
+        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+        <span class="text-gray-300">🇱🇾 ليبيا: مراقبة حدودية</span>
+      </div>
+      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-900 border border-gray-800">
+        <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+        <span class="text-gray-300">🇮🇱 إسرائيل: توتر مرتفع</span>
+      </div>
+      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-900 border border-gray-800">
+        <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+        <span class="text-gray-300">🌊 البحر الأحمر: نشط</span>
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center gap-3">
+      <div id="llm-status-pill" class="text-xs font-mono px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
+        OpenRouter: Fallback Mode
+      </div>
+      <button onclick="toggleLang()" class="px-2.5 py-1 text-xs font-bold rounded bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200">
+        EN / عربي
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="bg-osiris-bg border-b border-osiris-border px-6 flex gap-4 text-sm font-semibold">
+    <button onclick="switchTab('analyst-room')" id="tab-btn-analyst-room" class="py-3 px-2 border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2">
+      <span>🎯 غرفة المحللين (Analyst Room)</span>
+    </button>
+    <button onclick="switchTab('early-warning')" id="tab-btn-early-warning" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
+      <span>📡 الإنذار المبكر والمؤشرات</span>
+      <span id="badge-alerts-count" class="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-600 text-white">0</span>
+    </button>
+    <button onclick="switchTab('evidence-bank')" id="tab-btn-evidence-bank" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
+      <span>🗄️ بنك الأدلة والمصادر (Admiralty)</span>
+    </button>
+    <button onclick="switchTab('agents-roster')" id="tab-btn-agents-roster" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
+      <span>🤖 الوكلاء الأربعة عشر (Agents Roster)</span>
+    </button>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="flex-1 p-6 max-w-7xl mx-auto w-full">
+
+    <!-- TAB 1: ANALYST ROOM -->
+    <section id="tab-analyst-room" class="space-y-6">
+      
+      <!-- Mission Input Box -->
+      <div class="glass-panel rounded-xl p-5 shadow-lg border border-osiris-border">
+        <h2 class="text-base font-bold text-gray-200 mb-3 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <span>تكليف الخلية بمهمة استراتيجية جديدة (Strategic Assessment Task)</span>
+        </h2>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1.5 font-medium">سؤال البحث الاستراتيجي (Research Question)</label>
+            <textarea id="input-question" rows="2" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-sm text-gray-100 focus:outline-none focus:border-emerald-500" placeholder="مثال: تقدير موقف حول تداعيات التطورات العسكرية والأمنية في قطاع غزة والحدود الغربية لليبيا على الأمن القومي المصري..."></textarea>
+          </div>
+
+          <!-- Quick Prompts -->
+          <div class="flex flex-wrap gap-2 text-xs">
+            <span class="text-gray-500 self-center">أسئلة شائعة:</span>
+            <button onclick="setPrompt(1)" class="px-2.5 py-1 rounded bg-gray-900 hover:bg-gray-800 border border-gray-800 text-emerald-400">
+              🇪🇬 أمن الحدود الغربية مع ليبيا
+            </button>
+            <button onclick="setPrompt(2)" class="px-2.5 py-1 rounded bg-gray-900 hover:bg-gray-800 border border-gray-800 text-cyan-400">
+              🌊 أمن الملاحة في البحر الأحمر وقناة السويس
+            </button>
+            <button onclick="setPrompt(3)" class="px-2.5 py-1 rounded bg-gray-900 hover:bg-gray-800 border border-gray-800 text-amber-400">
+              🇮🇱 توازن القوى ومستقبل التهدئة مع إسرائيل
+            </button>
+            <button onclick="setPrompt(4)" class="px-2.5 py-1 rounded bg-gray-900 hover:bg-gray-800 border border-gray-800 text-purple-400">
+              🛡️ الصناعات الدفاعية وتوطين التكنولوجيا
+            </button>
+          </div>
+
+          <!-- Controls Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 border-t border-gray-800/60">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">الدولة المرجعية (Perspective)</label>
+              <select id="select-reference-country" class="w-full bg-gray-900 border border-gray-800 rounded p-2 text-xs text-gray-200">
+                <option value="Egypt" selected>🇪🇬 مصر (المنظور الوطني المصري)</option>
+                <option value="Libya">🇱🇾 ليبيا</option>
+                <option value="Regional">🌐 منظور إقليمي مشترك</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">الإطار الزمني (Horizon)</label>
+              <select id="select-horizon" class="w-full bg-gray-900 border border-gray-800 rounded p-2 text-xs text-gray-200">
+                <option value="1-3 months">قصير المدى (1-3 أشهر)</option>
+                <option value="6-12 months" selected>متوسط المدى (6-12 شهراً)</option>
+                <option value="2-5 years">استراتيجي بعيد (2-5 سنوات)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">نمط التقرير (Assessment Mode)</label>
+              <select id="select-mode" class="w-full bg-gray-900 border border-gray-800 rounded p-2 text-xs text-gray-200">
+                <option value="strategic_assessment" selected>تقدير موقف استراتيجي شامل</option>
+                <option value="daily_brief">موجز استخباراتي يومي (Daily Brief)</option>
+                <option value="crisis_assessment">تقدير أزمة طارئة (Crisis Mode)</option>
+                <option value="scenario_analysis">استشراف وسيناريوهات مستقبلية</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button id="btn-run-assessment" onclick="runAssessment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition duration-150 shadow-lg shadow-emerald-950">
+                <span id="run-spinner" class="hidden animate-spin">🌀</span>
+                <span>إطلاق التحليل الاستراتيجي</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Execution Status Stream -->
+      <div id="execution-stream" class="hidden glass-panel rounded-xl p-5 border border-cyan-900/40">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+            <span>مداولات خلية الوكلاء جارية الآن (Multi-Agent Swarm Deliberation)</span>
+          </h3>
+          <span id="stream-step" class="text-xs font-mono text-gray-400">Step 1/5: Collection & Verification...</span>
+        </div>
+        <div class="bg-gray-950 rounded-lg p-3 font-mono text-xs text-gray-300 space-y-1 max-h-40 overflow-y-auto" id="log-console">
+          <div>[INFO] OSINT Collector (A02) scanning feeds for Egypt, Libya, and Israel...</div>
+          <div>[INFO] Admiralty Verifier (A03) checking source reliability codes A-F...</div>
+        </div>
+      </div>
+
+      <!-- Results Display Panel -->
+      <div id="results-panel" class="hidden space-y-6">
+        
+        <!-- Header & Dissemination Gate -->
+        <div class="glass-panel rounded-xl p-5 border border-osiris-border flex flex-wrap justify-between items-center gap-4">
+          <div>
+            <div class="flex items-center gap-3">
+              <span id="assessment-badge-status" class="px-2.5 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                قيد المراجعة البشرية (Pending Review)
+              </span>
+              <span id="assessment-id-label" class="text-xs font-mono text-gray-400">ID: SA-000000</span>
+            </div>
+            <h1 id="assessment-title" class="text-lg font-bold text-white mt-1"></h1>
+          </div>
+
+          <!-- Dissemination Buttons -->
+          <div class="flex items-center gap-2">
+            <button onclick="approveCurrent('approve')" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md">
+              ✅ اعتماد ونشر التقرير (Approve)
+            </button>
+            <button onclick="approveCurrent('reject')" class="px-3 py-2 rounded-lg bg-rose-900/60 hover:bg-rose-800 text-rose-300 text-xs border border-rose-700">
+              ❌ رفض (Reject)
+            </button>
+            <button onclick="exportReport('markdown')" class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs border border-gray-700">
+              📥 تصدير Markdown
+            </button>
+            <button onclick="exportReport('html')" class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs border border-gray-700">
+              📄 تقرير HTML
+            </button>
+          </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="md:col-span-2 glass-panel rounded-xl p-5 border border-emerald-900/30">
+            <h3 class="text-sm font-bold text-emerald-400 mb-2 flex items-center gap-2">
+              <span>📋 الملخص التنفيذي (Executive Summary)</span>
+            </h3>
+            <p id="assessment-summary-ar" class="text-sm text-gray-200 leading-relaxed whitespace-pre-line"></p>
+          </div>
+
+          <!-- Key Judgments -->
+          <div class="glass-panel rounded-xl p-5 border border-cyan-900/30">
+            <h3 class="text-sm font-bold text-cyan-400 mb-2">⚡ الأحكام الاستراتيجية الرئيسية</h3>
+            <ul id="assessment-key-judgments" class="text-xs text-gray-300 space-y-2 list-disc list-inside"></ul>
+          </div>
+        </div>
+
+        <!-- Domain Findings Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="domain-cards-container">
+          <!-- Military -->
+          <div class="glass-panel rounded-lg p-4 border border-gray-800">
+            <div class="flex items-center gap-2 mb-2 text-xs font-bold text-rose-400">
+              <span>🛡️ التقييم العسكري والدفاعي (A04)</span>
+            </div>
+            <p id="desc-military" class="text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto"></p>
+          </div>
+
+          <!-- Political -->
+          <div class="glass-panel rounded-lg p-4 border border-gray-800">
+            <div class="flex items-center gap-2 mb-2 text-xs font-bold text-blue-400">
+              <span>🏛️ التقييم السياسي والدبلوماسي (A05)</span>
+            </div>
+            <p id="desc-political" class="text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto"></p>
+          </div>
+
+          <!-- Economic -->
+          <div class="glass-panel rounded-lg p-4 border border-gray-800">
+            <div class="flex items-center gap-2 mb-2 text-xs font-bold text-emerald-400">
+              <span>📊 التقييم الاقتصادي وأمن الطاقة (A06)</span>
+            </div>
+            <p id="desc-economic" class="text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto"></p>
+          </div>
+
+          <!-- Geopolitical -->
+          <div class="glass-panel rounded-lg p-4 border border-gray-800">
+            <div class="flex items-center gap-2 mb-2 text-xs font-bold text-purple-400">
+              <span>🌐 التقييم الجيوسياسي وموازين القوى (A07)</span>
+            </div>
+            <p id="desc-geopolitical" class="text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto"></p>
+          </div>
+
+          <!-- Defense Tech -->
+          <div class="glass-panel rounded-lg p-4 border border-gray-800">
+            <div class="flex items-center gap-2 mb-2 text-xs font-bold text-amber-400">
+              <span>🛰️ الصناعات الدفاعية والتكنولوجيا (A08)</span>
+            </div>
+            <p id="desc-defense-tech" class="text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto"></p>
+          </div>
+
+          <!-- Country Intelligence -->
+          <div class="glass-panel rounded-lg p-4 border border-gray-800">
+            <div class="flex items-center gap-2 mb-2 text-xs font-bold text-teal-400">
+              <span>🌍 ملفات الدول (مصر • ليبيا • إسرائيل) (A10)</span>
+            </div>
+            <p id="desc-country-intel" class="text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto"></p>
+          </div>
+        </div>
+
+        <!-- Red Team Critique Box (Mandatory Independent Audit) -->
+        <div class="glass-panel rounded-xl p-5 border border-rose-900/60 bg-rose-950/10">
+          <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+              <h3 class="text-sm font-bold text-rose-400">المراجعة النقدية المستقلة (Red Team Critique - A13)</h3>
+            </div>
+            <span id="red-team-verdict" class="px-2 py-0.5 rounded text-[11px] font-mono bg-rose-900/50 text-rose-300 border border-rose-700">
+              Verdict: Accepted with Revisions
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div>
+              <span class="font-bold text-emerald-400 block mb-1">نقاط القوة المرصودة:</span>
+              <ul id="red-team-strengths" class="list-disc list-inside text-gray-300 space-y-1"></ul>
+            </div>
+            <div>
+              <span class="font-bold text-amber-400 block mb-1">الافتراضات المعارضة والاعتراضات:</span>
+              <ul id="red-team-weaknesses" class="list-disc list-inside text-gray-300 space-y-1"></ul>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-rose-900/40 text-xs text-gray-300">
+            <span class="font-bold text-rose-300">توصية الفريق الأحمر لصانع القرار:</span>
+            <span id="red-team-recs" class="mr-2"></span>
+          </div>
+        </div>
+
+        <!-- Scenarios Matrix -->
+        <div class="glass-panel rounded-xl p-5 border border-osiris-border">
+          <h3 class="text-sm font-bold text-amber-400 mb-3">🔮 السيناريوهات المستقبلية (Scenario Matrix)</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="scenarios-container"></div>
+        </div>
+
+        <!-- Strategic Recommendations -->
+        <div class="glass-panel rounded-xl p-5 border border-emerald-900/40">
+          <h3 class="text-sm font-bold text-emerald-400 mb-2">🎯 التوصيات الاستراتيجية لصانع القرار</h3>
+          <ol id="assessment-recs" class="text-xs text-gray-200 space-y-2 list-decimal list-inside"></ol>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 2: EARLY WARNING CENTER -->
+    <section id="tab-early-warning" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-base font-bold text-white">مركز الإنذار المبكر والمؤشرات الاستراتيجية (Early Warning Radar)</h2>
+          <p class="text-xs text-gray-400">مراقبة عتبات الخطر في محيط مصر وليبيا وإسرائيل وممرات البحر الأحمر</p>
+        </div>
+        <button onclick="refreshIndicators()" class="px-3 py-1.5 rounded bg-gray-800 hover:bg-gray-700 text-xs border border-gray-700 text-gray-200">
+          🔄 تحديث المؤشرات
+        </button>
+      </div>
+
+      <!-- Indicators Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="indicators-grid"></div>
+
+      <!-- Active Alerts Feed -->
+      <div class="glass-panel rounded-xl p-5 border border-rose-900/50">
+        <h3 class="text-sm font-bold text-rose-400 mb-3 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+          <span>سجل التنبيهات الفورية (Live Alerts Feed)</span>
+        </h3>
+        <div id="alerts-container" class="space-y-3">
+          <div class="text-xs text-gray-500 py-4 text-center">لا توجد تنبيهات حرجة نشطة حالياً.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: EVIDENCE BANK -->
+    <section id="tab-evidence-bank" class="hidden space-y-6">
+      <div>
+        <h2 class="text-base font-bold text-white">بنك الأدلة والمصادر المفتوحة (OSINT & Evidence Repository)</h2>
+        <p class="text-xs text-gray-400">نظام توثيق الوقائع وفق كود Admiralty القياسي (A-F موثوقية، 1-6 مصداقية)</p>
+      </div>
+      <div class="glass-panel rounded-xl p-5 border border-osiris-border">
+        <div class="space-y-3" id="evidence-list-container">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: AGENTS ROSTER -->
+    <section id="tab-agents-roster" class="hidden space-y-6">
+      <div>
+        <h2 class="text-base font-bold text-white">خلية الوكلاء الأربعة عشر (The 14 Specialized Intelligence Agents)</h2>
+        <p class="text-xs text-gray-400">هيكل الفريق الاستخباري المتكامل مع محركات النماذج عبر OpenRouter</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="agents-grid-container">
+        <!-- Injected via JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-osiris-border py-4 px-6 text-center text-xs text-gray-500 font-mono">
+    Strategic OSIRIS Intelligence Platform • Decision Support & Military Attaché System • OpenRouter Multi-Model Gateway
+  </footer>
+
+  <!-- Core Dashboard Client Logic -->
+  <script>
+    let currentAssessment = null;
+
+    const sampleQuestions = {
+      1: "تقييم التطورات الأمنية والتحركات العسكرية قرب الحدود الغربية المشتركة مع ليبيا، وتداعياتها على استقرار الدولة الوطنية والأمن القومي المصري.",
+      2: "رصد مخاطر التهديدات غير المتماثلة في جنوب البحر الأحمر ومضيق باب المندب وتأثيرها على سلامة الملاحة الدولية وإيرادات قناة السويس.",
+      3: "تحليل موازين القوى والتطورات الميدانية في قطاع غزة والحدود الشرقية، وفرص التوصل لتهدئة مستدامة تحمي السيادة المصرية.",
+      4: "تقييم برامج تطوير الصناعات الدفاعية وتوطين تكنولوجيا الرادارات والمسيرات بمعرض إيديكس وانعكاساتها على الجاهزية الردعية المصرية."
+    };
+
+    function setPrompt(idx) {
+      document.getElementById('input-question').value = sampleQuestions[idx] || '';
+    }
+
+    function switchTab(tabId) {
+      ['analyst-room', 'early-warning', 'evidence-bank', 'agents-roster'].forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (el) el.classList.toggle('hidden', t !== tabId);
+        if (btn) {
+          if (t === tabId) {
+            btn.className = "py-3 px-2 border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2";
+          } else {
+            btn.className = "py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2";
+          }
+        }
+      });
+      if (tabId === 'early-warning') refreshIndicators();
+      if (tabId === 'evidence-bank') loadEvidence();
+      if (tabId === 'agents-roster') loadAgents();
+    }
+
+    async function checkHealth() {
+      try {
+        const res = await fetch('/api/health');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('llm-status-pill').textContent = `Engine: ${data.llm_mode}`;
+          document.getElementById('llm-status-pill').className = data.llm_mode.includes('live')
+            ? "text-xs font-mono px-2.5 py-1 rounded bg-emerald-950 border border-emerald-700 text-emerald-300"
+            : "text-xs font-mono px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300";
+        }
+      } catch (e) {
+        console.error("Health check failed", e);
+      }
+    }
+
+    async function runAssessment() {
+      const question = document.getElementById('input-question').value.trim();
+      if (!question) {
+        alert("يرجى إدخال سؤال البحث الاستراتيجي.");
+        return;
+      }
+
+      const refCountry = document.getElementById('select-reference-country').value;
+      const horizon = document.getElementById('select-horizon').value;
+      const mode = document.getElementById('select-mode').value;
+
+      document.getElementById('btn-run-assessment').disabled = true;
+      document.getElementById('run-spinner').classList.remove('hidden');
+      document.getElementById('execution-stream').classList.remove('hidden');
+      document.getElementById('results-panel').classList.add('hidden');
+
+      const logConsole = document.getElementById('log-console');
+      logConsole.innerHTML = `
+        <div>[00.0s] Chief Strategic Analyst (A01) initialized research plan. Target: ${refCountry}...</div>
+        <div>[01.2s] OSINT Collector (A02) pulling intelligence feeds for Egypt, Libya, and Israel...</div>
+        <div>[02.4s] Admiralty Verification (A03) evaluating source reliability codes A-F...</div>
+        <div>[03.5s] Parallel specialists deliberating (Military, Political, Economic, Geopolitical, Defense Tech)...</div>
+        <div>[05.0s] Red Team Analyst (A13) conducting critical assumptions audit...</div>
+      `;
+
+      try {
+        const res = await fetch('/api/assessments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            research_question: question,
+            reference_country: refCountry,
+            target_countries: ["Egypt", "Libya", "Israel"],
+            time_horizon: horizon,
+            assessment_mode: mode
+          })
+        });
+
+        if (!res.ok) throw new Error("Assessment execution failed");
+        const data = await res.json();
+        currentAssessment = data;
+        displayAssessment(data);
+      } catch (err) {
+        alert("حدث خطأ أثناء تنفيذ التقدير: " + err.message);
+      } finally {
+        document.getElementById('btn-run-assessment').disabled = false;
+        document.getElementById('run-spinner').classList.add('hidden');
+        document.getElementById('execution-stream').classList.add('hidden');
+      }
+    }
+
+    function displayAssessment(a) {
+      document.getElementById('results-panel').classList.remove('hidden');
+      document.getElementById('assessment-id-label').textContent = `ID: ${a.id}`;
+      document.getElementById('assessment-title').textContent = a.research_question;
+      
+      const badge = document.getElementById('assessment-badge-status');
+      badge.textContent = a.status === 'approved' ? 'معتمد للنشر (Approved)' : 'قيد المراجعة البشرية (Pending Review)';
+      badge.className = a.status === 'approved'
+        ? "px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+        : "px-2.5 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30";
+
+      document.getElementById('assessment-summary-ar').textContent = a.executive_summary_ar;
+      
+      const kjContainer = document.getElementById('assessment-key-judgments');
+      kjContainer.innerHTML = a.key_judgments.map(j => `<li>${j}</li>`).join('');
+
+      document.getElementById('desc-military').textContent = a.military_assessment || 'غير متوفر';
+      document.getElementById('desc-political').textContent = a.political_assessment || 'غير متوفر';
+      document.getElementById('desc-economic').textContent = a.economic_assessment || 'غير متوفر';
+      document.getElementById('desc-geopolitical').textContent = a.geopolitical_assessment || 'غير متوفر';
+      document.getElementById('desc-defense-tech').textContent = a.defense_tech_assessment || 'غير متوفر';
+      document.getElementById('desc-country-intel').textContent = a.country_intel_assessment || 'غير متوفر';
+
+      if (a.red_team_critique) {
+        const rtc = a.red_team_critique;
+        document.getElementById('red-team-verdict').textContent = `Verdict: ${rtc.verdict}`;
+        document.getElementById('red-team-strengths').innerHTML = rtc.strengths.map(s => `<li>${s}</li>`).join('');
+        document.getElementById('red-team-weaknesses').innerHTML = rtc.weaknesses.map(w => `<li>${w}</li>`).join('');
+        document.getElementById('red-team-recs').textContent = rtc.recommendations_for_chief;
+      }
+
+      const scContainer = document.getElementById('scenarios-container');
+      scContainer.innerHTML = a.scenarios.map(s => `
+        <div class="glass-panel rounded-lg p-3 border border-gray-800">
+          <div class="flex justify-between items-center mb-1">
+            <span class="font-bold text-xs text-amber-300">${s.title}</span>
+            <span class="text-xs font-mono font-bold text-emerald-400">${Math.round(s.probability_estimate * 100)}%</span>
+          </div>
+          <div class="w-full bg-gray-800 h-1.5 rounded-full mb-2 overflow-hidden">
+            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${Math.round(s.probability_estimate * 100)}%"></div>
+          </div>
+          <p class="text-[11px] text-gray-300 mb-2">${s.description}</p>
+          <div class="text-[10px] text-gray-400 border-t border-gray-800 pt-1">
+            <span class="text-gray-500">المؤشرات:</span> ${s.indicators_to_watch.join(', ')}
+          </div>
+        </div>
+      `).join('');
+
+      const recContainer = document.getElementById('assessment-recs');
+      recContainer.innerHTML = a.recommendations.map(r => `<li>${r}</li>`).join('');
+    }
+
+    async function approveCurrent(action) {
+      if (!currentAssessment) return;
+      try {
+        const res = await fetch(`/api/assessments/${currentAssessment.id}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: action,
+            reviewer: "General Intelligence Review Officer (رئيس هيئة التقدير)",
+            notes: action === 'approve' ? "تم التدقيق واعتماد التقدير للتوزيع الاستراتيجي." : "مرفوض للمراجعة الإضافية."
+          })
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          currentAssessment = updated;
+          displayAssessment(updated);
+          alert(action === 'approve' ? "تم اعتماد التقرير بنجاح." : "تم تغيير حالة التقرير.");
+        }
+      } catch (e) {
+        alert("فشل في تحديث حالة الاعتماد: " + e.message);
+      }
+    }
+
+    function exportReport(format) {
+      if (!currentAssessment) return;
+      window.open(`/api/assessments/${currentAssessment.id}/export?format=${format}`, '_blank');
+    }
+
+    async function refreshIndicators() {
+      try {
+        const res = await fetch('/api/indicators');
+        const data = await res.json();
+        const grid = document.getElementById('indicators-grid');
+        grid.innerHTML = data.map(ind => {
+          const ratio = (ind.current_value / Math.max(0.1, ind.baseline_value)).toFixed(2);
+          const isBreached = ratio >= ind.threshold_ratio;
+          const statusColor = isBreached ? 'text-rose-400 border-rose-800 bg-rose-950/20' : 'text-emerald-400 border-emerald-800 bg-emerald-950/10';
+
+          return `
+            <div class="glass-panel rounded-xl p-4 border ${statusColor}">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <span class="text-[10px] font-mono text-gray-400 uppercase">${ind.id} • ${ind.region}</span>
+                  <h4 class="text-sm font-bold text-gray-100">${ind.name}</h4>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold ${isBreached ? 'bg-rose-900 text-rose-200' : 'bg-emerald-900 text-emerald-200'}">
+                  ${isBreached ? '⚠️ عتبة متجاوزة' : 'طبيعي'}
+                </span>
+              </div>
+              <p class="text-xs text-gray-300 mb-3">${ind.description}</p>
+              
+              <div class="grid grid-cols-3 gap-2 text-center text-xs font-mono bg-gray-950/60 p-2 rounded">
+                <div><span class="text-gray-500 block text-[10px]">القيمة الحالية</span><span class="font-bold text-white">${ind.current_value.toFixed(1)}</span></div>
+                <div><span class="text-gray-500 block text-[10px]">خط الأساس</span><span class="text-gray-400">${ind.baseline_value.toFixed(1)}</span></div>
+                <div><span class="text-gray-500 block text-[10px]">معامل التغير</span><span class="font-bold ${isBreached ? 'text-rose-400' : 'text-emerald-400'}">${ratio}x</span></div>
+              </div>
+
+              <!-- Test slider -->
+              <div class="mt-3 pt-2 border-t border-gray-800 flex items-center justify-between gap-3 text-xs">
+                <span class="text-gray-400">محاكاة القيمة:</span>
+                <input type="range" min="0" max="15" step="0.5" value="${ind.current_value}" 
+                  onchange="updateIndicatorVal('${ind.id}', this.value)" class="flex-1 accent-emerald-500 cursor-pointer">
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Refresh alerts
+        const aRes = await fetch('/api/alerts');
+        const alerts = await aRes.json();
+        document.getElementById('badge-alerts-count').textContent = alerts.length;
+        const alertCont = document.getElementById('alerts-container');
+        if (alerts.length === 0) {
+          alertCont.innerHTML = '<div class="text-xs text-gray-500 py-4 text-center">لا توجد تنبيهات نشطة حالياً.</div>';
+        } else {
+          alertCont.innerHTML = alerts.map(a => `
+            <div class="p-3 rounded-lg bg-gray-900 border border-rose-900/60 flex justify-between items-center text-xs">
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="px-1.5 py-0.2 rounded bg-rose-900 text-white font-bold text-[10px] uppercase">${a.severity}</span>
+                  <span class="font-bold text-gray-200">${a.title}</span>
+                  <span class="text-gray-500 font-mono">${a.region}</span>
+                </div>
+                <p class="text-gray-400">${a.description}</p>
+              </div>
+              <button onclick="dismissAlert('${a.id}')" class="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px]">
+                استبعاد
+              </button>
+            </div>
+          `).join('');
+        }
+      } catch (e) {
+        console.error("Failed to load indicators", e);
+      }
+    }
+
+    async function updateIndicatorVal(id, val) {
+      await fetch(`/api/indicators/${id}/update?new_value=${val}`, { method: 'POST' });
+      refreshIndicators();
+    }
+
+    async function dismissAlert(id) {
+      await fetch(`/api/alerts/${id}/dismiss`, { method: 'POST' });
+      refreshIndicators();
+    }
+
+    async function loadEvidence() {
+      const res = await fetch('/api/evidence');
+      const data = await res.json();
+      const container = document.getElementById('evidence-list-container');
+      container.innerHTML = data.map(e => `
+        <div class="p-3.5 rounded-lg bg-gray-900 border border-gray-800 text-xs">
+          <div class="flex justify-between items-center mb-1.5">
+            <div class="flex items-center gap-2">
+              <span class="font-mono font-bold text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-800">${e.id}</span>
+              <span class="font-bold text-gray-200">${e.title}</span>
+            </div>
+            <div class="flex items-center gap-2 text-gray-400 font-mono text-[11px]">
+              <span>Admiralty: <strong class="text-cyan-400">${e.reliability}${e.credibility}</strong></span>
+              <span>•</span>
+              <span>${e.source_name}</span>
+            </div>
+          </div>
+          <p class="text-gray-300 leading-relaxed mb-2">${e.content_snippet}</p>
+          <div class="flex gap-1.5 text-[10px] text-gray-400">
+            ${e.countries_mentioned.map(c => `<span class="px-1.5 py-0.2 rounded bg-gray-800 text-gray-300">${c}</span>`).join('')}
+            ${e.tags.map(t => `<span class="px-1.5 py-0.2 rounded bg-gray-800/60 text-gray-400">#${t}</span>`).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadAgents() {
+      const res = await fetch('/api/agents');
+      const data = await res.json();
+      const container = document.getElementById('agents-grid-container');
+      container.innerHTML = data.map(ag => `
+        <div class="glass-panel rounded-xl p-4 border border-gray-800 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">${ag.id}</span>
+              <span class="text-[10px] text-gray-500 font-mono">${ag.default_model.split('/')[1] || ag.default_model}</span>
+            </div>
+            <h4 class="font-bold text-sm text-gray-100">${ag.name_ar}</h4>
+            <span class="text-[11px] text-gray-400 block mb-2">${ag.name_en}</span>
+            <p class="text-xs text-gray-300 leading-relaxed">${ag.role_description_ar}</p>
+          </div>
+          <div class="mt-3 pt-2 border-t border-gray-800 flex justify-between text-[11px] text-gray-500 font-mono">
+            <span>Temp: ${ag.temperature}</span>
+            <span class="text-emerald-500">● نشط</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleLang() {
+      const isRtl = document.documentElement.dir === 'rtl';
+      document.documentElement.dir = isRtl ? 'ltr' : 'rtl';
+      document.documentElement.lang = isRtl ? 'en' : 'ar';
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      checkHealth();
+      refreshIndicators();
+    });
+  </script>
+</body>
+</html>

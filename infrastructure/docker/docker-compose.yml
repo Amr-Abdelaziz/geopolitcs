@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Strategic OSIRIS Core Intelligence Fusion API
+  api:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.api
+    container_name: strategic-osiris-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - SITE_URL=${SITE_URL:-https://osiris.yourdomain.com}
+      - APP_NAME=Strategic OSIRIS Intelligence Platform
+      - OSIRIS_URL=${OSIRIS_URL:-http://localhost:3000}
+      - PYTHIA_URL=${PYTHIA_URL:-http://localhost:8088}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-osiris}:${POSTGRES_PASSWORD:-secret}@postgres:5432/${POSTGRES_DB:-strategic_osiris}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - osiris-net
+
+  # PostgreSQL Database with Vector Extension
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: strategic-osiris-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-osiris}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_DB: ${POSTGRES_DB:-strategic_osiris}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-osiris}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osiris-net
+
+  # Redis for Queuing and PubSub
+  redis:
+    image: redis:7-alpine
+    container_name: strategic-osiris-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    networks:
+      - osiris-net
+
+  # Reverse Proxy (Nginx) for VPS
+  nginx:
+    image: nginx:alpine
+    container_name: strategic-osiris-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - api
+    networks:
+      - osiris-net
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  osiris-net:
+    driver: bridge
