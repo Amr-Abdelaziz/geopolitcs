@@ -970,28 +970,123 @@
           <button onclick="closeKnowledgeDocumentsModal()" class="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 flex items-center justify-center font-bold">✕</button>
         </div>
 
-        <div class="py-3 flex flex-wrap gap-2 items-center">
-          <input type="text" id="kb-search-input" placeholder="🔍 بحث في وثائق العقيدة، مضيق باب المندب، اتفاقيات شرق المتوسط..."
-            oninput="searchKnowledgeDocs(this.value)"
-            class="flex-1 min-w-[260px] bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
-          <select id="kb-category-select" onchange="filterKnowledgeDocsCategory(this.value)"
-            class="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2 text-xs text-purple-300 focus:outline-none">
-            <option value="all">كافة التصنيفات</option>
-            <option value="doctrine">العقيدة العسكرية الدفاعية</option>
-            <option value="chokepoint">الممرات والمضائق البحرية</option>
-            <option value="treaty">المعاهدات والاتفاقيات</option>
-            <option value="military_analysis">التحليلات العسكرية الميدانية</option>
-            <option value="conflict_history">خلفيات الصراع والتوازنات</option>
-          </select>
+        <div class="py-3 flex flex-wrap gap-2 items-center justify-between border-b border-gray-800/80">
+          <div class="flex flex-wrap gap-2 items-center flex-1">
+            <input type="text" id="kb-search-input" placeholder="🔍 بحث في وثائق العقيدة، مضيق باب المندب، اتفاقيات شرق المتوسط..."
+              oninput="searchKnowledgeDocs(this.value)"
+              class="flex-1 min-w-[240px] bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+            <select id="kb-category-select" onchange="filterKnowledgeDocsCategory(this.value)"
+              class="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2 text-xs text-purple-300 focus:outline-none">
+              <option value="all">كافة التصنيفات</option>
+              <option value="doctrine">العقيدة العسكرية الدفاعية</option>
+              <option value="chokepoint">الممرات والمضائق البحرية</option>
+              <option value="treaty">المعاهدات والاتفاقيات</option>
+              <option value="military_analysis">التحليلات العسكرية الميدانية</option>
+              <option value="conflict_history">خلفيات الصراع والتوازنات</option>
+            </select>
+          </div>
+          <button onclick="toggleAddKnowledgeDocForm()" id="btn-toggle-add-doc" class="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition">
+            <span>➕ إضافة وثيقة جديدة</span>
+          </button>
         </div>
 
-        <!-- Document Cards Grid & Detailed View -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 overflow-y-auto my-2 pr-1 min-h-[360px]">
+        <!-- VIEW 1: Document Browser (List & Detail View) -->
+        <div id="kb-browser-view" class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 overflow-y-auto my-2 pr-1 min-h-[360px]">
           <div id="kb-docs-list" class="space-y-2 md:col-span-1 border-r border-gray-800/80 pr-2 overflow-y-auto max-h-[460px]">
             <!-- Dynamically populated -->
           </div>
           <div id="kb-doc-detail-view" class="md:col-span-2 p-4 bg-gray-900/60 rounded-xl border border-gray-800/80 space-y-3 overflow-y-auto max-h-[460px]">
             <div class="text-center py-20 text-gray-500 text-xs">اختر وثيقة من القائمة للاطلاع على كامل بنود العقيدة والتوثيق المرجعي.</div>
+          </div>
+        </div>
+
+        <!-- VIEW 2: Ingestion Form (Hidden by default) -->
+        <div id="kb-add-form-view" class="hidden flex-1 overflow-y-auto my-2 p-4 bg-gray-900/70 rounded-xl border border-gray-800 space-y-3 max-h-[460px] text-xs">
+          <div class="flex justify-between items-center pb-2 border-b border-gray-800">
+            <h4 class="font-bold text-white text-sm flex items-center gap-1.5">
+              <span>✍️</span>
+              <span>إدراج وثيقة أو دراسة استراتيجية جديدة في بنك المعرفة</span>
+            </h4>
+            <span class="text-[10px] text-gray-400 font-mono">POST /api/knowledge/ingest</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-gray-400 font-mono text-[10px] mb-1">معرف الوثيقة (Document ID):</label>
+              <input id="form-doc-id" type="text" placeholder="e.g. DOC-DEF-011" class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-white font-mono text-xs focus:border-purple-500">
+            </div>
+            <div>
+              <label class="block text-gray-400 font-mono text-[10px] mb-1">التصنيف (Category):</label>
+              <select id="form-doc-category" class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-purple-300 font-mono text-xs focus:border-purple-500">
+                <option value="doctrine">العقيدة العسكرية الدفاعية (doctrine)</option>
+                <option value="treaty">معاهدة أو اتفاقية دولية (treaty)</option>
+                <option value="chokepoint">ممر مائي أو مضيق استراتيجي (chokepoint)</option>
+                <option value="military_analysis">تحليل عسكري وتوازنات قوى (military_analysis)</option>
+                <option value="conflict_history">تاريخ وخلفيات النزاع (conflict_history)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-gray-400 font-mono text-[10px] mb-1">العنوان بالعربية (Title Arabic):</label>
+              <input id="form-doc-title-ar" type="text" placeholder="عنوان الوثيقة أو المعاهدة..." class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-white text-xs focus:border-purple-500">
+            </div>
+            <div>
+              <label class="block text-gray-400 font-mono text-[10px] mb-1">العنوان بالإنجليزية (Title English):</label>
+              <input id="form-doc-title-en" type="text" placeholder="Official Document Title in English..." class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-white font-mono text-xs focus:border-purple-500">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-gray-400 font-mono text-[10px] mb-1">نطاق الدول (Countries Comma-Separated):</label>
+              <input id="form-doc-countries" type="text" placeholder="Egypt, Libya, Red Sea" class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-white font-mono text-xs focus:border-purple-500">
+            </div>
+            <div>
+              <label class="block text-gray-400 font-mono text-[10px] mb-1">موثوقية المصدر (Admiralty Reliability):</label>
+              <select id="form-doc-rel" class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-emerald-400 font-mono text-xs">
+                <option value="A">A - موثوق به تماماً (Completely reliable)</option>
+                <option value="B">B - موثوق به عادة (Usually reliable)</option>
+                <option value="C">C - موثوق به نسبياً (Fairly reliable)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-gray-400 font-mono text-[10px] mb-1">مصداقية المعلومات (Credibility):</label>
+              <select id="form-doc-cred" class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-emerald-400 font-mono text-xs">
+                <option value="1">1 - مؤكد بحقائق أخرى (Confirmed)</option>
+                <option value="2">2 - محتمل جداً (Probably true)</option>
+                <option value="3">3 - ممكن (Possibly true)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-gray-400 font-mono text-[10px] mb-1">الملخص التقديري (Executive Summary):</label>
+            <textarea id="form-doc-summary" rows="2" placeholder="ملخص استراتيجي مكثف لأهم بنود الوثيقة..." class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-white text-xs focus:border-purple-500"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-gray-400 font-mono text-[10px] mb-1">النص الكامل للوثيقة / العقيدة الدفاعية (Full Strategic Content):</label>
+            <textarea id="form-doc-content" rows="5" placeholder="النص التفصيلي لبنود العقيدة، قواعد الاشتباك، أو نصوص المعاهدة..." class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-white text-xs font-mono focus:border-purple-500"></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-gray-400 font-mono text-[10px] mb-1">الكيانات الاستراتيجية (Entities Comma-Separated):</label>
+              <input id="form-doc-entities" type="text" placeholder="الجيش الثاني, قاعدة برنيس, مضيق باب المندب" class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-white text-xs focus:border-purple-500">
+            </div>
+            <div>
+              <label class="block text-gray-400 font-mono text-[10px] mb-1">المصادر المرجعية (Sources Comma-Separated):</label>
+              <input id="form-doc-sources" type="text" placeholder="وزارة الدفاع, الأمم المتحدة, تقرير IISS" class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-white text-xs focus:border-purple-500">
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t border-gray-800">
+            <button onclick="toggleAddKnowledgeDocForm()" type="button" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium">إلغاء والعودة</button>
+            <button onclick="submitNewKnowledgeDoc()" id="btn-submit-knowledge-doc" type="button" class="px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold flex items-center gap-1.5 transition">
+              <span>💾 حفظ واعتماد في بنك المعرفة</span>
+            </button>
           </div>
         </div>
 
@@ -2722,6 +2817,97 @@
         setTimeout(() => {
           inspectOrbatUnitById(activeSelectedGraphNode.unit_id);
         }, 300);
+      }
+    }
+
+    let isAddKnowledgeDocFormOpen = false;
+
+    function toggleAddKnowledgeDocForm() {
+      isAddKnowledgeDocFormOpen = !isAddKnowledgeDocFormOpen;
+      const browserView = document.getElementById('kb-browser-view');
+      const formView = document.getElementById('kb-add-form-view');
+      const toggleBtn = document.getElementById('btn-toggle-add-doc');
+
+      if (isAddKnowledgeDocFormOpen) {
+        browserView.classList.add('hidden');
+        formView.classList.remove('hidden');
+        toggleBtn.innerHTML = '<span>📋 استعراض الوثائق</span>';
+        toggleBtn.className = 'px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs flex items-center gap-1.5 transition';
+        // Auto-generate suggested ID
+        const nextNum = (cachedKnowledgeDocs.length + 1).toString().padStart(3, '0');
+        document.getElementById('form-doc-id').value = `DOC-USER-${nextNum}`;
+      } else {
+        formView.classList.add('hidden');
+        browserView.classList.remove('hidden');
+        toggleBtn.innerHTML = '<span>➕ إضافة وثيقة جديدة</span>';
+        toggleBtn.className = 'px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition';
+      }
+    }
+
+    async function submitNewKnowledgeDoc() {
+      const id = document.getElementById('form-doc-id').value.trim();
+      const titleAr = document.getElementById('form-doc-title-ar').value.trim();
+      const titleEn = document.getElementById('form-doc-title-en').value.trim();
+      const category = document.getElementById('form-doc-category').value;
+      const countriesStr = document.getElementById('form-doc-countries').value.trim();
+      const reliability = document.getElementById('form-doc-rel').value;
+      const credibility = parseInt(document.getElementById('form-doc-cred').value, 10);
+      const summary = document.getElementById('form-doc-summary').value.trim();
+      const content = document.getElementById('form-doc-content').value.trim();
+      const entitiesStr = document.getElementById('form-doc-entities').value.trim();
+      const sourcesStr = document.getElementById('form-doc-sources').value.trim();
+
+      if (!id || !titleAr || !content) {
+        alert("يرجى ملء الحقول الإلزامية: معرف الوثيقة، العنوان بالعربية، والنص الكامل للوثيقة.");
+        return;
+      }
+
+      const countries = countriesStr ? countriesStr.split(',').map(s => s.trim()).filter(Boolean) : ["Regional"];
+      const key_entities = entitiesStr ? entitiesStr.split(',').map(s => s.trim()).filter(Boolean) : [titleAr];
+      const sources = sourcesStr ? sourcesStr.split(',').map(s => s.trim()).filter(Boolean) : ["National Defense Archive"];
+
+      const payload = {
+        id,
+        title_ar: titleAr,
+        title_en: titleEn || titleAr,
+        category,
+        country_coverage: countries,
+        summary: summary || content.slice(0, 180) + '...',
+        content,
+        reliability,
+        credibility,
+        key_entities,
+        sources
+      };
+
+      const btn = document.getElementById('btn-submit-knowledge-doc');
+      btn.textContent = "جاري الحفظ في بنك المعرفة...";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/knowledge/ingest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || "فشل إدراج الوثيقة في بنك المعرفة");
+        }
+
+        const saved = await res.json();
+        alert(`✓ تم اعتماد وحفظ الوثيقة [${saved.id}] بنجاح في قاعدة المعرفة الموثقة!`);
+        
+        // Reload docs list and switch back to browser view
+        await loadKnowledgeDocs();
+        toggleAddKnowledgeDocForm();
+        selectKnowledgeDoc(saved.id);
+      } catch (err) {
+        alert("خطأ: " + err.message);
+      } finally {
+        btn.innerHTML = '<span>💾 حفظ واعتماد في بنك المعرفة</span>';
+        btn.disabled = false;
       }
     }
 
