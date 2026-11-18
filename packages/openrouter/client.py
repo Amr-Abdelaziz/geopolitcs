@@ -15,6 +15,13 @@ from packages.schemas.models import AgentID
 
 load_dotenv()
 
+# Inject Windows / OS native trust store if available
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except Exception:
+    pass
+
 log = logging.getLogger("strategic_osiris.openrouter")
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -81,16 +88,26 @@ class OpenRouterClient:
             "max_tokens": max_tokens,
         }
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        # Try first with default SSL; fall back to verify=False if corporate/Windows proxy causes SSLError
+        for verify_ssl in (True, False):
             try:
-                response = await client.post(OPENROUTER_URL, headers=headers, json=payload)
-                response.raise_for_status()
-                data = response.json()
-                content = data["choices"][0]["message"]["content"]
-                return content
+                async with httpx.AsyncClient(timeout=120.0, verify=verify_ssl) as client:
+                    response = await client.post(OPENROUTER_URL, headers=headers, json=payload)
+                    response.raise_for_status()
+                    data = response.json()
+                    content = data["choices"][0]["message"]["content"]
+                    log.info("OpenRouter response received from %s (agent: %s)", model, agent_id.value if agent_id else "unknown")
+                    return content
+            except httpx.HTTPStatusError as e:
+                log.error("OpenRouter HTTP error %d: %s", e.response.status_code, e.response.text)
+                break
             except Exception as e:
+                if verify_ssl:
+                    log.warning("SSL verification failed (%s), retrying with verify=False", str(e))
+                    continue
                 log.error("OpenRouter request failed: %s, falling back to mock generator", str(e))
-                return self._generate_mock_completion(messages, agent_id, context_hint)
+
+        return self._generate_mock_completion(messages, agent_id, context_hint)
 
     def _generate_mock_completion(
         self,
