@@ -7,3 +7,6 @@ __pycache__/
 upstream/
 runs/
 logs/
+*.db
+*.db-shm
+*.db-wal

@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Query, Response
 
 load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, StreamingResponse
 from packages.prompts.registry import (
     AGENT_REGISTRY,
     agent_config_manager,
@@ -29,14 +29,40 @@ from packages.schemas.models import (
     RECOMMENDED_MODELS,
     StrategicAssessment,
 )
+from packages.storage.database import DatabaseManager
 from services.orchestrator.pipeline import StrategicPipeline
 from services.reporting.generator import ReportGenerator
+from contextlib import asynccontextmanager
 from services.warning.indicator_engine import IndicatorEngine
+from services.warning.radar_daemon import RadarDaemon
+
+db = DatabaseManager()
+pipeline = StrategicPipeline(db=db)
+indicator_engine = IndicatorEngine()
+radar_daemon = RadarDaemon(
+    osiris_client=pipeline.collector.client,
+    collector=pipeline.collector,
+    indicator_engine=indicator_engine,
+    db=db,
+    interval_seconds=600
+)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await db.init_db()
+    await radar_daemon.start()
+    try:
+        yield
+    finally:
+        await radar_daemon.stop()
+
 
 app = FastAPI(
     title="Strategic OSIRIS (SIFP) Intelligence API",
     description="Multi-Agent Strategic Intelligence Fusion Platform for Defense and Geopolitics",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 app.add_middleware(
@@ -46,9 +72,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-pipeline = StrategicPipeline()
-indicator_engine = IndicatorEngine()
 
 
 @app.get("/api/health")
@@ -61,7 +84,8 @@ async def health_check() -> Dict[str, Any]:
         "agents_count": len(AGENT_REGISTRY),
         "llm_mode": "mock_fallback" if pipeline.llm.mock_mode else "openrouter_live",
         "target_countries": ["Egypt", "Libya", "Israel"],
-        "osiris_upstream": osiris_health
+        "osiris_upstream": osiris_health,
+        "radar": radar_daemon.get_status()
     }
 
 
@@ -173,7 +197,7 @@ async def reset_all_agents() -> List[AgentDefinition]:
     return agent_config_manager.reset_all()
 
 
-# --- Assessment Pipeline ---
+# --- Assessment Pipeline & Streaming ---
 
 @app.post("/api/assessments", response_model=StrategicAssessment)
 async def create_assessment(request: AssessmentRequest) -> StrategicAssessment:
@@ -181,17 +205,41 @@ async def create_assessment(request: AssessmentRequest) -> StrategicAssessment:
     return assessment
 
 
+@app.post("/api/assessments/stream")
+async def stream_assessment(request: AssessmentRequest) -> StreamingResponse:
+    """Stream multi-agent deliberation events via Server-Sent Events (SSE)."""
+    return StreamingResponse(
+        pipeline.execute_assessment_stream(request),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
 @app.get("/api/assessments", response_model=List[StrategicAssessment])
-async def list_assessments() -> List[StrategicAssessment]:
-    return pipeline.list_assessments()
+async def list_assessments(
+    limit: int = Query(50, ge=1, le=200),
+    status: Optional[str] = Query(None),
+    country: Optional[str] = Query(None)
+) -> List[StrategicAssessment]:
+    return await pipeline.list_assessments_async(limit=limit, status=status, country=country)
 
 
 @app.get("/api/assessments/{assessment_id}", response_model=StrategicAssessment)
 async def get_assessment(assessment_id: str) -> StrategicAssessment:
-    assessment = pipeline.get_assessment(assessment_id)
+    assessment = await pipeline.get_assessment_async(assessment_id)
     if not assessment:
         raise HTTPException(status_code=404, detail="Assessment not found")
     return assessment
+
+
+@app.get("/api/assessments/{assessment_id}/audits")
+async def get_assessment_audits(assessment_id: str):
+    """Retrieve full reviewer audit trail for this assessment."""
+    return await db.get_audits(assessment_id)
 
 
 @app.post("/api/assessments/{assessment_id}/approve", response_model=StrategicAssessment)
@@ -209,7 +257,7 @@ async def approve_assessment(assessment_id: str, action: ApprovalAction) -> Stra
 
 @app.get("/api/assessments/{assessment_id}/export")
 async def export_assessment(assessment_id: str, format: str = Query("markdown")) -> Response:
-    assessment = pipeline.get_assessment(assessment_id)
+    assessment = await pipeline.get_assessment_async(assessment_id)
     if not assessment:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
@@ -221,6 +269,18 @@ async def export_assessment(assessment_id: str, format: str = Query("markdown"))
     else:
         md_content = ReportGenerator.to_arabic_markdown(assessment)
         return PlainTextResponse(content=md_content, media_type="text/markdown; charset=utf-8")
+
+
+# --- Autonomous Radar & Ingestion ---
+
+@app.get("/api/radar/status")
+async def get_radar_status() -> Dict[str, Any]:
+    return radar_daemon.get_status()
+
+
+@app.post("/api/radar/trigger")
+async def trigger_radar_cycle() -> Dict[str, Any]:
+    return await radar_daemon.run_cycle()
 
 
 # --- Evidence Store ---

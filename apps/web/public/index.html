@@ -79,6 +79,9 @@
 
     <!-- Right Controls -->
     <div class="flex items-center gap-3">
+      <div id="radar-status-pill" onclick="triggerRadar()" class="text-xs font-mono px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300 cursor-pointer hover:border-emerald-600 transition" title="انقر لتشغيل رصد راداري فوري">
+        Radar: Loading...
+      </div>
       <div id="osiris-status-pill" class="text-xs font-mono px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
         OSIRIS: Connecting...
       </div>
@@ -182,17 +185,51 @@
       </div>
 
       <!-- Execution Status Stream -->
-      <div id="execution-stream" class="hidden glass-panel rounded-xl p-5 border border-cyan-900/40">
-        <div class="flex justify-between items-center mb-3">
+      <div id="execution-stream" class="hidden glass-panel rounded-xl p-5 border border-cyan-900/60 space-y-4">
+        <div class="flex justify-between items-center">
           <h3 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-            <span>مداولات خلية الوكلاء جارية الآن (Multi-Agent Swarm Deliberation)</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+            <span id="stream-phase-title">مداولات خلية الوكلاء جارية الآن (Multi-Agent Swarm Deliberation)</span>
           </h3>
-          <span id="stream-step" class="text-xs font-mono text-gray-400">Step 1/5: Collection & Verification...</span>
+          <span id="stream-percentage" class="text-xs font-mono font-bold text-emerald-400">10%</span>
         </div>
-        <div class="bg-gray-950 rounded-lg p-3 font-mono text-xs text-gray-300 space-y-1 max-h-40 overflow-y-auto" id="log-console">
-          <div>[INFO] OSINT Collector (A02) scanning feeds for Egypt, Libya, and Israel...</div>
-          <div>[INFO] Admiralty Verifier (A03) checking source reliability codes A-F...</div>
+
+        <!-- Progress bar -->
+        <div class="w-full bg-gray-900 rounded-full h-1.5 overflow-hidden border border-gray-800">
+          <div id="stream-progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-300" style="width: 10%"></div>
+        </div>
+
+        <!-- Active Agents Pills Grid -->
+        <div id="stream-agents-status" class="flex flex-wrap gap-2 text-[11px] font-mono">
+          <span id="agent-pill-A02" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A02 OSINT</span>
+          <span id="agent-pill-A03" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A03 Verification</span>
+          <span id="agent-pill-A04" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A04 Military</span>
+          <span id="agent-pill-A05" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A05 Political</span>
+          <span id="agent-pill-A06" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A06 Economic</span>
+          <span id="agent-pill-A07" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A07 Geopolitical</span>
+          <span id="agent-pill-A08" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A08 Tech</span>
+          <span id="agent-pill-A10" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A10 Country</span>
+          <span id="agent-pill-A11" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A11 Forecast</span>
+          <span id="agent-pill-A01" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A01 Chief</span>
+          <span id="agent-pill-A13" class="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">A13 Red Team</span>
+        </div>
+
+        <div class="bg-gray-950 rounded-lg p-3 font-mono text-xs text-gray-300 space-y-1.5 max-h-48 overflow-y-auto" id="log-console">
+          <div>[INFO] نظام التداول المباشر جاهز للاستقبال...</div>
+        </div>
+      </div>
+
+      <!-- Historical Assessments Database Archive -->
+      <div class="glass-panel rounded-xl p-4 border border-osiris-border">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-xs font-bold text-gray-200 flex items-center gap-2">
+            <span>🗂️ سجل التقديرات المحفوظة بقاعدة البيانات (Assessment Database Archive)</span>
+            <span id="history-count-badge" class="px-1.5 py-0.2 rounded bg-gray-800 text-[10px] text-gray-400 font-mono">0</span>
+          </h3>
+          <button onclick="loadHistory()" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium">🔄 تحديث السجل</button>
+        </div>
+        <div id="history-container" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="text-xs text-gray-500 py-3 text-center col-span-3">جاري تحميل سجل التقديرات...</div>
         </div>
       </div>
 
@@ -345,9 +382,14 @@
           <h2 class="text-base font-bold text-white">مركز الإنذار المبكر والمؤشرات الاستراتيجية (Early Warning Radar)</h2>
           <p class="text-xs text-gray-400">مراقبة عتبات الخطر في محيط مصر وليبيا وإسرائيل وممرات البحر الأحمر</p>
         </div>
-        <button onclick="refreshIndicators()" class="px-3 py-1.5 rounded bg-gray-800 hover:bg-gray-700 text-xs border border-gray-700 text-gray-200">
-          🔄 تحديث المؤشرات
-        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="triggerRadar()" class="px-3 py-1.5 rounded bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-700 text-xs text-emerald-300 font-semibold flex items-center gap-1.5 transition">
+            <span>📡 تشغيل فحص راداري فوري</span>
+          </button>
+          <button onclick="refreshIndicators()" class="px-3 py-1.5 rounded bg-gray-800 hover:bg-gray-700 text-xs border border-gray-700 text-gray-200">
+            🔄 تحديث المؤشرات
+          </button>
+        </div>
       </div>
 
       <!-- Indicators Grid -->
@@ -544,8 +586,99 @@
             osPill.className = "text-xs font-mono px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-400";
           }
         }
+
+        // Radar background status
+        const rRes = await fetch('/api/radar/status');
+        if (rRes.ok) {
+          const rData = await rRes.json();
+          const rPill = document.getElementById('radar-status-pill');
+          if (rData.is_running) {
+            rPill.innerHTML = `📡 Radar: Active (Cycle #${rData.cycles_completed || 0})`;
+            rPill.className = "text-xs font-mono px-2.5 py-1 rounded bg-emerald-950 border border-emerald-700 text-emerald-300 cursor-pointer hover:border-emerald-500 transition";
+          } else {
+            rPill.innerHTML = "📡 Radar: Standby";
+            rPill.className = "text-xs font-mono px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-400 cursor-pointer hover:border-gray-500 transition";
+          }
+        }
       } catch (e) {
         console.error("Health check failed", e);
+      }
+    }
+
+    async function triggerRadar() {
+      const rPill = document.getElementById('radar-status-pill');
+      const orig = rPill.textContent;
+      rPill.textContent = "📡 جاري المسح الراداري...";
+      try {
+        const res = await fetch('/api/radar/trigger', { method: 'POST' });
+        if (res.ok) {
+          const data = await res.json();
+          alert(`📡 تم إتمام دورة مسح الإنذار المبكر الفوري بنجاح!\nالأحداث الجديدة: ${data.new_events_recorded}\nالمؤشرات المحدثة: ${data.indicators_updated}\nالتنبيهات الجديدة: ${data.alerts_raised}`);
+          await refreshIndicators();
+          await checkHealth();
+        } else {
+          throw new Error("فشل تشغيل دورة الرادار");
+        }
+      } catch (e) {
+        alert("خطأ أثناء استدعاء الرادار: " + e.message);
+      } finally {
+        checkHealth();
+      }
+    }
+
+    async function loadHistory() {
+      const container = document.getElementById('history-container');
+      const badge = document.getElementById('history-count-badge');
+      try {
+        const res = await fetch('/api/assessments?limit=9');
+        if (!res.ok) throw new Error("تعذر جلب سجل التقديرات");
+        const list = await res.json();
+        if (badge) badge.textContent = list.length;
+        
+        if (!list || list.length === 0) {
+          container.innerHTML = '<div class="text-xs text-gray-500 py-3 text-center col-span-3">لا توجد تقديرات سابقة محفوظة بعد في قاعدة البيانات. قم بتشغيل تقدير جديد ليتم حفظه تلقائياً.</div>';
+          return;
+        }
+
+        container.innerHTML = list.map(a => {
+          const isAppr = a.status === 'approved';
+          const dt = a.created_at ? new Date(a.created_at).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : '';
+          const shortQ = a.research_question.length > 90 ? a.research_question.substring(0, 90) + '...' : a.research_question;
+          return `
+            <div class="p-3 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 transition flex flex-col justify-between text-xs">
+              <div>
+                <div class="flex justify-between items-center mb-1.5 font-mono text-[11px]">
+                  <span class="text-emerald-400 font-bold">${a.id}</span>
+                  <span class="px-1.5 py-0.2 rounded text-[10px] ${isAppr ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
+                    ${isAppr ? 'معتمد' : 'قيد المراجعة'}
+                  </span>
+                </div>
+                <p class="text-gray-200 font-medium leading-relaxed mb-2">${shortQ}</p>
+              </div>
+              <div class="pt-2 border-t border-gray-800/80 flex justify-between items-center text-[10px] text-gray-400">
+                <span>${dt}</span>
+                <button onclick="loadAssessmentById('${a.id}')" class="px-2 py-1 rounded bg-gray-800 hover:bg-emerald-950 hover:text-emerald-300 border border-gray-700 text-[11px] font-semibold text-gray-200 transition">
+                  عرض التقدير ↗
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        container.innerHTML = `<div class="text-xs text-rose-400 py-3 text-center col-span-3">خطأ في جلب السجل: ${e.message}</div>`;
+      }
+    }
+
+    async function loadAssessmentById(aid) {
+      try {
+        const res = await fetch(`/api/assessments/${aid}`);
+        if (!res.ok) throw new Error("تعذر جلب تفاصيل التقدير");
+        const data = await res.json();
+        currentAssessment = data;
+        displayAssessment(data);
+        document.getElementById('results-panel').scrollIntoView({ behavior: 'smooth' });
+      } catch (e) {
+        alert("فشل تحميل التقدير: " + e.message);
       }
     }
 
@@ -565,17 +698,27 @@
       document.getElementById('execution-stream').classList.remove('hidden');
       document.getElementById('results-panel').classList.add('hidden');
 
+      // Reset agent status pills
+      const allPills = document.querySelectorAll('#stream-agents-status span');
+      allPills.forEach(p => {
+        p.className = "px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500";
+      });
+
       const logConsole = document.getElementById('log-console');
-      logConsole.innerHTML = `
-        <div>[00.0s] Chief Strategic Analyst (A01) initialized research plan. Target: ${refCountry}...</div>
-        <div>[01.2s] OSINT Collector (A02) pulling intelligence feeds for Egypt, Libya, and Israel...</div>
-        <div>[02.4s] Admiralty Verification (A03) evaluating source reliability codes A-F...</div>
-        <div>[03.5s] Parallel specialists deliberating (Military, Political, Economic, Geopolitical, Defense Tech)...</div>
-        <div>[05.0s] Red Team Analyst (A13) conducting critical assumptions audit...</div>
-      `;
+      logConsole.innerHTML = `<div>[${new Date().toLocaleTimeString()}] 🚀 بدء الاتصال بخط أنابيب البث المباشر (SSE Stream)...</div>`;
+      
+      const progressBar = document.getElementById('stream-progress-bar');
+      const progressText = document.getElementById('stream-percentage');
+      const phaseTitle = document.getElementById('stream-phase-title');
+
+      function setProgress(pct, phaseName) {
+        progressBar.style.width = `${pct}%`;
+        progressText.textContent = `${pct}%`;
+        if (phaseName) phaseTitle.textContent = phaseName;
+      }
 
       try {
-        const res = await fetch('/api/assessments', {
+        const response = await fetch('/api/assessments/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -587,16 +730,94 @@
           })
         });
 
-        if (!res.ok) throw new Error("Assessment execution failed");
-        const data = await res.json();
-        currentAssessment = data;
-        displayAssessment(data);
+        if (!response.ok) {
+          throw new Error(`فشل الاتصال بالخادم: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const messages = buffer.split('\n\n');
+          buffer = messages.pop(); // Keep partial message in buffer
+
+          for (const rawMessage of messages) {
+            if (!rawMessage.trim()) continue;
+            
+            let eventType = 'message';
+            let eventData = '';
+            
+            const lines = rawMessage.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('event: ')) {
+                eventType = line.substring(7).trim();
+              } else if (line.startsWith('data: ')) {
+                eventData = line.substring(6).trim();
+              }
+            }
+
+            if (!eventData) continue;
+            let payload = {};
+            try {
+              payload = JSON.parse(eventData);
+            } catch (err) {
+              continue;
+            }
+
+            // Handle event types
+            if (eventType === 'init') {
+              setProgress(5, "تم تكليف غرفة العمليات والوكيل الرئيسي (A01)");
+              logConsole.innerHTML += `<div>[${new Date().toLocaleTimeString()}] 📋 تم بدء التقدير الاستراتيجي (${payload.assessment_id}).</div>`;
+            } else if (eventType === 'phase') {
+              const phaseMap = {
+                'collection': { pct: 15, ar: "المرحلة الأولى: جمع المعلومات الاستخباراتية (OSINT Collection)" },
+                'verification': { pct: 30, ar: "المرحلة الثانية: تدقيق موثوقية المصادر وتصنيف الأدميرالية (Verification)" },
+                'deliberation': { pct: 50, ar: "المرحلة الثالثة: مداولات الوكلاء التخصصيين المتزامنة (Parallel Deliberation)" },
+                'red_team': { pct: 75, ar: "المرحلة الرابعة: مراجعة الفريق الأحمر والافتراضات الحرجة (Red Team Critique)" },
+                'synthesis': { pct: 90, ar: "المرحلة الخامسة: الصياغة الاستراتيجية والاستشراف النهائي (Chief Synthesis)" }
+              };
+              const pInfo = phaseMap[payload.phase] || { pct: 40, ar: `مرحلة: ${payload.phase}` };
+              setProgress(pInfo.pct, pInfo.ar);
+              logConsole.innerHTML += `<div class="text-cyan-400 font-bold">[${new Date().toLocaleTimeString()}] ⚡ ${pInfo.ar}</div>`;
+            } else if (eventType === 'agent_start') {
+              const pill = document.getElementById(`agent-pill-${payload.agent_id}`);
+              if (pill) {
+                pill.className = "px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-500 text-cyan-300 font-bold animate-pulse";
+              }
+              const shortModel = payload.model ? (payload.model.split('/')[1] || payload.model) : '';
+              logConsole.innerHTML += `<div>[${new Date().toLocaleTimeString()}] 🤖 بدء تفعيل الوكيل: <span class="text-cyan-300 font-bold">${payload.agent_id} (${payload.name_ar})</span> - نموذج: <span class="text-gray-400 font-mono">${shortModel}</span></div>`;
+            } else if (eventType === 'agent_complete') {
+              const pill = document.getElementById(`agent-pill-${payload.agent_id}`);
+              if (pill) {
+                pill.className = "px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-600 text-emerald-300 font-bold";
+              }
+              logConsole.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ✅ اكتملت مهمة الوكيل: <span class="text-emerald-300 font-bold">${payload.agent_id} (${payload.name_ar})</span> بنجاح.</div>`;
+            } else if (eventType === 'complete') {
+              setProgress(100, "اكتمل التقدير الاستراتيجي الشامل وتم حفظه في قاعدة البيانات");
+              logConsole.innerHTML += `<div class="text-emerald-400 font-bold text-sm">[${new Date().toLocaleTimeString()}] 🎯 اكتمل التقدير الاستراتيجي بنجاح! رقم الوثيقة: ${payload.assessment.id}</div>`;
+              currentAssessment = payload.assessment;
+              displayAssessment(payload.assessment);
+              loadHistory();
+              document.getElementById('results-panel').scrollIntoView({ behavior: 'smooth' });
+            } else if (eventType === 'error') {
+              logConsole.innerHTML += `<div class="text-rose-400 font-bold">[${new Date().toLocaleTimeString()}] ❌ خطأ: ${payload.error}</div>`;
+              alert("حدث خطأ أثناء المعالجة: " + payload.error);
+            }
+
+            logConsole.scrollTop = logConsole.scrollHeight;
+          }
+        }
       } catch (err) {
+        logConsole.innerHTML += `<div class="text-rose-400 font-bold">[${new Date().toLocaleTimeString()}] ❌ انقطع البث: ${err.message}</div>`;
         alert("حدث خطأ أثناء تنفيذ التقدير: " + err.message);
       } finally {
         document.getElementById('btn-run-assessment').disabled = false;
         document.getElementById('run-spinner').classList.add('hidden');
-        document.getElementById('execution-stream').classList.add('hidden');
       }
     }
 
@@ -668,6 +889,7 @@
           const updated = await res.json();
           currentAssessment = updated;
           displayAssessment(updated);
+          loadHistory();
           alert(action === 'approve' ? "تم اعتماد التقرير بنجاح." : "تم تغيير حالة التقرير.");
         }
       } catch (e) {
@@ -982,6 +1204,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       checkHealth();
       refreshIndicators();
+      loadHistory();
     });
   </script>
 </body>
