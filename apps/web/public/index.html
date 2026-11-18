@@ -807,6 +807,7 @@
                 <h4 id="dossier-title-ar" class="text-sm font-bold text-white leading-snug">القيادة العامة للقوات المسلحة المصرية</h4>
                 <span id="dossier-title-en" class="text-[11px] text-gray-400 block font-mono mt-0.5 truncate">Egyptian Armed Forces GHQ</span>
                 <span id="dossier-native-name" class="text-[10px] text-purple-300 font-mono block mt-0.5 truncate"></span>
+                <span id="dossier-other-names" class="text-[10px] text-gray-400 font-mono block mt-0.5 truncate"></span>
               </div>
             </div>
 
@@ -835,6 +836,46 @@
                 <span class="text-gray-500 font-mono text-[11px] w-20 flex-shrink-0">الجاهزية:</span>
                 <span id="dossier-readiness" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">High Readiness</span>
               </div>
+            </div>
+
+            <!-- Geo-Intelligence & Placemark Card -->
+            <div id="dossier-placemark-box" class="p-3 bg-gradient-to-br from-purple-950/30 to-blue-950/20 rounded-xl border border-purple-800/40 space-y-2 text-xs">
+              <div class="flex justify-between items-center">
+                <span class="text-purple-300 font-bold font-mono text-[11px] flex items-center gap-1.5">
+                  <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  📍 الاستخبارات المكانية والرصد (Placemark Intel)
+                </span>
+                <span id="dossier-pm-date" class="text-[10px] text-gray-400 font-mono"></span>
+              </div>
+              
+              <div class="flex items-center justify-between gap-1.5 font-mono text-[11px] bg-black/60 p-2 rounded-lg border border-purple-950">
+                <div class="flex items-center gap-1.5 text-cyan-300 truncate">
+                  <span>🌐 الإحداثيات:</span>
+                  <span id="dossier-pm-grid" class="font-bold select-all text-white"></span>
+                </div>
+                <span id="dossier-pm-echelon-badge" class="px-1.5 py-0.5 rounded text-[9px] bg-purple-900/60 text-purple-200 border border-purple-700/60 font-mono"></span>
+              </div>
+
+              <div class="flex gap-2 pt-1">
+                <a id="dossier-pm-link" href="#" target="_blank" class="flex-1 py-1.5 px-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white text-[11px] font-bold text-center transition flex items-center justify-center gap-1.5 shadow">
+                  <span>📍 خريطة GeoConfirmed</span>
+                  <span class="text-xs">↗</span>
+                </a>
+                <a id="dossier-maps-link" href="#" target="_blank" class="flex-1 py-1.5 px-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-[11px] text-center transition flex items-center justify-center gap-1.5 border border-gray-700 shadow">
+                  <span>🌍 Google Maps</span>
+                  <span class="text-xs">↗</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- OSINT Remarks & Sources -->
+            <div id="dossier-remarks-container" class="space-y-1.5 hidden">
+              <span class="text-[11px] font-bold text-gray-300 block font-mono">الملاحظات والتوثيق الاستخباراتي (OSINT Remarks):</span>
+              <p id="dossier-remarks" class="text-xs text-gray-300 leading-relaxed bg-gray-900/70 p-2.5 rounded-lg border border-gray-800/80"></p>
+            </div>
+            <div id="dossier-sources-container" class="hidden">
+              <span class="text-[10px] text-gray-400 font-mono block mb-0.5">المصدر والتوثيق المرجعي:</span>
+              <a id="dossier-sources-link" href="#" target="_blank" class="text-[11px] text-cyan-400 hover:text-cyan-300 hover:underline font-mono block truncate bg-black/40 p-1.5 rounded border border-gray-800/60"></a>
             </div>
 
             <!-- Role & Mission -->
@@ -2556,14 +2597,25 @@
                 </div>
                 <div class="flex items-center gap-2 text-[10px] text-gray-400 font-mono mt-0.5 truncate">
                   <span>${unit.name_en}</span>
+                  ${unit.other_names ? `<span class="text-gray-500">(${unit.other_names})</span>` : ''}
                   <span>•</span>
                   <span class="text-gray-300">📍 ${unit.hq_location}</span>
+                  ${unit.last_known_grid ? `<span class="text-cyan-400 bg-cyan-950/60 px-1 py-0.2 rounded border border-cyan-800/50 select-all">[${unit.last_known_grid}]</span>` : ''}
                 </div>
               </div>
             </div>
 
             <!-- Card Right Controls / Status -->
             <div class="flex items-center gap-2 text-[11px] self-end sm:self-center flex-shrink-0">
+              ${unit.placemark_url ? `
+                <a href="${unit.placemark_url}" target="_blank" onclick="event.stopPropagation();"
+                  class="px-2 py-0.5 rounded-md bg-purple-900/60 hover:bg-purple-800 border border-purple-700/80 text-purple-200 text-[10px] font-mono flex items-center gap-1 transition"
+                  title="فتح خريطة التمركز في GeoConfirmed">
+                  <span>📍</span>
+                  <span>Placemark</span>
+                  <span class="text-[9px]">↗</span>
+                </a>
+              ` : ''}
               <span class="px-2 py-0.5 rounded bg-gray-950 border border-gray-800 text-gray-300 text-[10px] font-mono">
                 ${unit.branch}
               </span>
@@ -2623,10 +2675,80 @@
       document.getElementById('dossier-title-ar').textContent = unit.name_ar;
       document.getElementById('dossier-title-en').textContent = `${unit.name_en} [${unit.id}]`;
       document.getElementById('dossier-native-name').textContent = unit.native_name || '';
+
+      const otherNamesEl = document.getElementById('dossier-other-names');
+      if (otherNamesEl) {
+        otherNamesEl.textContent = unit.other_names ? `التسميات الإضافية والرموز: ${unit.other_names}` : '';
+      }
+
       document.getElementById('dossier-location').textContent = unit.hq_location;
       document.getElementById('dossier-commander').textContent = unit.commander || 'غير معلن / هيئة العمليات المشتركة';
       document.getElementById('dossier-readiness').textContent = unit.readiness_status;
       document.getElementById('dossier-mission').textContent = unit.role_and_mission;
+
+      // Placemark & Geo-Intelligence Section
+      const pmBox = document.getElementById('dossier-placemark-box');
+      const pmGrid = document.getElementById('dossier-pm-grid');
+      const pmDate = document.getElementById('dossier-pm-date');
+      const pmLink = document.getElementById('dossier-pm-link');
+      const mapsLink = document.getElementById('dossier-maps-link');
+      const pmEchelon = document.getElementById('dossier-pm-echelon-badge');
+
+      const hasCoords = (unit.latitude !== null && unit.latitude !== undefined) && 
+                        (unit.longitude !== null && unit.longitude !== undefined);
+      const gridCoords = unit.last_known_grid || (hasCoords ? `${Number(unit.latitude).toFixed(6)}, ${Number(unit.longitude).toFixed(6)}` : null);
+
+      if (pmBox) {
+        if (gridCoords || unit.placemark_url) {
+          pmBox.classList.remove('hidden');
+          pmGrid.textContent = gridCoords || 'إحداثيات جغرافية معتمدة';
+          pmDate.textContent = unit.last_known_date ? `تاريخ الرصد: ${unit.last_known_date}` : '';
+          pmEchelon.textContent = unit.echelon || 'MIL';
+
+          if (unit.placemark_url) {
+            pmLink.href = unit.placemark_url;
+            pmLink.classList.remove('opacity-40', 'pointer-events-none');
+          } else {
+            pmLink.href = '#';
+            pmLink.classList.add('opacity-40', 'pointer-events-none');
+          }
+
+          if (hasCoords) {
+            mapsLink.href = `https://www.google.com/maps?q=${unit.latitude},${unit.longitude}`;
+            mapsLink.classList.remove('opacity-40', 'pointer-events-none');
+          } else {
+            mapsLink.href = '#';
+            mapsLink.classList.add('opacity-40', 'pointer-events-none');
+          }
+        } else {
+          pmBox.classList.add('hidden');
+        }
+      }
+
+      // Remarks & OSINT Notes Section
+      const remarksContainer = document.getElementById('dossier-remarks-container');
+      const remarksEl = document.getElementById('dossier-remarks');
+      if (remarksContainer && remarksEl) {
+        if (unit.remarks && unit.remarks.trim()) {
+          remarksContainer.classList.remove('hidden');
+          remarksEl.textContent = unit.remarks;
+        } else {
+          remarksContainer.classList.add('hidden');
+        }
+      }
+
+      // Documented Sources Section
+      const sourcesContainer = document.getElementById('dossier-sources-container');
+      const sourcesLink = document.getElementById('dossier-sources-link');
+      if (sourcesContainer && sourcesLink) {
+        if (unit.sources && unit.sources.trim()) {
+          sourcesContainer.classList.remove('hidden');
+          sourcesLink.textContent = unit.sources;
+          sourcesLink.href = unit.sources.startsWith('http') ? unit.sources : `https://${unit.sources}`;
+        } else {
+          sourcesContainer.classList.add('hidden');
+        }
+      }
 
       // Secondary emblems & patches
       const patchesContainer = document.getElementById('dossier-patches');

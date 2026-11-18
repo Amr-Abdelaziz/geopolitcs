@@ -405,6 +405,14 @@ class OrbatUnit(BaseModel):
     unit_number: Optional[str] = None
     sources: Optional[str] = None
     geoconfirmed_id: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    last_known_grid: Optional[str] = None
+    last_known_date: Optional[str] = None
+    placemark_url: Optional[str] = None
+    other_names: Optional[str] = None
+    remarks: Optional[str] = None
+    last_update: Optional[str] = None
     sub_units: List["OrbatUnit"] = Field(default_factory=list)
 
 

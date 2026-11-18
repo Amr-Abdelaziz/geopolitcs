@@ -565,6 +565,21 @@ class OrbatService:
 
         role_mission = raw.get("remarks") or f"التشكيل العسكري الرسمي التابع لمسرح العمليات ({country_name})."
 
+        # Placemark & Geolocation resolution
+        lat = raw.get("latitude")
+        lon = raw.get("longitude")
+        grid = raw.get("lastKnownGrid")
+        if (lat is None or lon is None) and grid and "," in grid:
+            try:
+                parts = grid.split(",")
+                lat = float(parts[0].strip())
+                lon = float(parts[1].strip())
+            except Exception:
+                pass
+
+        raw_pm = raw.get("lastPlacemarkUrl")
+        placemark_url = f"{GEOCONFIRMED_BASE_URL}{raw_pm}" if raw_pm else None
+
         unit = OrbatUnit(
             id=unit_id,
             name_ar=native_name or name,
@@ -573,7 +588,7 @@ class OrbatService:
             country=country_name,
             echelon=org_level,
             branch=raw.get("branch") or self._infer_branch(name),
-            hq_location=raw.get("homeBase") or "مسرح العمليات الميداني",
+            hq_location=raw.get("homeBase") or (f"الإحداثيات: {grid}" if grid else "مسرح العمليات الميداني"),
             commander=None,
             role_and_mission=role_mission,
             equipment=equipment,
@@ -586,6 +601,14 @@ class OrbatService:
             unit_number=raw.get("unitNumber"),
             sources=raw.get("sources"),
             geoconfirmed_id=raw.get("id"),
+            latitude=lat,
+            longitude=lon,
+            last_known_grid=grid,
+            last_known_date=raw.get("lastKnownDate"),
+            placemark_url=placemark_url,
+            other_names=raw.get("otherNames"),
+            remarks=raw.get("remarks"),
+            last_update=raw.get("lastUpdate"),
             sub_units=[]
         )
 

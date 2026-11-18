@@ -54,6 +54,30 @@ def test_orbat_geoconfirmed_middle_east_and_logos():
     assert len(units_with_logos) >= 2
 
 
+def test_orbat_node_6474_and_placemarks():
+    """Verify node 6474 (Syria) has complete details, coordinates, grids, and placemarks."""
+    service = OrbatService()
+    tree = service.get_orbat_tree(catalog="syrianew")
+    assert tree.total_units >= 5
+    assert len(tree.roots) >= 1
+
+    # Units with placemarks and coordinates
+    units_with_pm = [u for u in tree.flat_units if u.placemark_url or u.last_known_grid]
+    assert len(units_with_pm) >= 3
+
+    # Check General Security Service (GSS - node 6476)
+    gss = next((u for u in tree.flat_units if "6476" in u.id or "General Security Service" in u.name_en), None)
+    assert gss is not None
+    assert gss.last_known_grid == "35.830457,38.218583"
+    assert gss.latitude == pytest.approx(35.830457, 0.0001)
+    assert gss.longitude == pytest.approx(38.218583, 0.0001)
+    assert gss.placemark_url is not None
+    assert "geoconfirmed.org/syria/" in gss.placemark_url
+    assert gss.remarks is not None
+    assert "police force" in gss.remarks.lower()
+    assert gss.sources is not None
+
+
 def test_orbat_filtering_and_search():
     """Verify branch filtering and text search in ORBAT service."""
     service = OrbatService()
