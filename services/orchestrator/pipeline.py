@@ -25,6 +25,11 @@ from packages.schemas.models import (
     StrategicAssessment,
 )
 from services.collection.collector import EvidenceCollector
+from services.orchestrator.parsers import (
+    parse_chief_synthesis,
+    parse_red_team_critique,
+    parse_scenarios,
+)
 from services.verification.admiralty import AdmiraltyEvaluator, ClaimVerifier
 
 log = logging.getLogger("strategic_osiris.orchestrator")
@@ -139,58 +144,22 @@ class StrategicPipeline:
             context_hint=request.research_question
         )
 
+        chief_synthesis = parse_chief_synthesis(chief_raw, request.research_question)
         assessment.executive_summary_ar = chief_raw[:1200]
         assessment.executive_summary_en = (
             f"Strategic Assessment regarding: {request.research_question}. "
             f"Evaluates national security posture for {request.reference_country} with focus on {', '.join(request.target_countries)}. "
             f"Deterrence balance, maritime security, and border stability remain primary operational imperatives."
         )
-        assessment.key_judgments = [
-            "الحفاظ على التفوق والجاهزية الردعية المتكاملة على المحاور الاستراتيجية الحاكمة.",
-            "تأمين ممرات التجارة والطاقة في البحر الأحمر وقناة السويس وشرق المتوسط يمثل ركيزة للأمن القومي.",
-            "استمرار التنسيق المشترك لمنع تدفق السلاح والمجموعات غير النظامية عبر الحدود الغربية."
-        ]
-        assessment.national_interest_implications = (
-            "ترسيخ دور مصر كركيزة للاستقرار الإقليمي، وحماية حرية الملاحة الدولية في قناة السويس، "
-            "وتعزيز الاستقلال العسكري بتوطين التكنولوجيا الدفاعية وتعدد مسارات التعاون الدولي."
-        )
-        assessment.risks_and_opportunities = (
-            "المخاطر: احتكاكات غير محسوبة على الممرات المائية وتصاعد استخدام الأنظمة المسيرة.\n"
-            "الفرص: قيادة مبادرات الأمن البحري الإقليمي وتوسيع التصدير الدفاعي والصناعات المشتركة."
-        )
-        assessment.recommendations = [
-            "إبقاء الجاهزية العملياتية والتعبوية لقوات تأمين الحدود والمجال البحري عند أعلى الدرجات.",
-            "تفعيل آليات التنسيق المباشر للإنذار المبكر مع دول الجوار والشركاء الإقليميين.",
-            "مواصلة برامج توطين الصناعات الدفاعية وتأمين خطوط إمداد التكنولوجيا الحيوية."
-        ]
+        assessment.key_judgments = chief_synthesis["key_judgments"]
+        assessment.national_interest_implications = chief_synthesis["national_interest_implications"]
+        assessment.risks_and_opportunities = chief_synthesis["risks_and_opportunities"]
+        assessment.recommendations = chief_synthesis["recommendations"]
 
-        # Standard Scenarios
-        assessment.scenarios = [
-            ScenarioItem(
-                title="الاستقرار الحذر والردع الفاعل",
-                description="استمرار توازن القوى الردعي ومنع الانزلاق لصراع مفتوح عبر قنوات الوساطة وتأمين الحدود.",
-                probability_estimate=0.60,
-                drivers=["توازن الردع", "التكلفة الاقتصادية الباهظة للتصعيد"],
-                indicators_to_watch=["انتظام الملاحة في البحر الأحمر", "استقرار المعابر الحدودية"],
-                strategic_implications="إتاحة مساحة لمواصلة خطط التنمية الاقتصادية وتحديث القدرات الدفاعية."
-            ),
-            ScenarioItem(
-                title="تصعيد موضعي واحتكاكات غير شاملة",
-                description="حدوث مناوشات أو استهدافات متفرقة لخطوط التجارة أو المحاور الحدودية يتم احتواؤها سريعاً.",
-                probability_estimate=0.25,
-                drivers=["استفزازات تكتيكية", "نشاط فصائل مسلحة خارج السيطرة"],
-                indicators_to_watch=["ارتفاع كلفة التأمين البحري", "تحركات قوات مفاجئة"],
-                strategic_implications="ضرورة الرد الردعي الحاسم دون الانجرار إلى استنزاف طويل الأمد."
-            ),
-            ScenarioItem(
-                title="انفراجة سياسية وتهدئة إقليمية شاملة",
-                description="التوصل لتفاهمات أمنية مشتركة تخفف من حدة التوترات الإقليمية وتؤمن خطوط التجارة والطاقة.",
-                probability_estimate=0.15,
-                drivers=["جهود الوساطة الدبلوماسية", "الرغبة في إنعاش الاقتصاد الإقليمي"],
-                indicators_to_watch=["توقيع اتفاقات أمنية", "استئناف مشاريع الربط الكهربائي والطاقة"],
-                strategic_implications="تعزيز المكانة المحورية لمصر كمركز إقليمي للتجارة والتعاون الاستراتيجي."
-            )
-        ]
+        # Dynamic Scenarios Extracted from A11 Forecast Analyst or Synthesis
+        forecast_finding = next((f for f in assessment.findings if f.agent_id == AgentID.A11_FORECAST), None)
+        scenario_source_text = forecast_finding.detailed_analysis if forecast_finding else chief_raw
+        assessment.scenarios = parse_scenarios(scenario_source_text, request.research_question)
 
         # Phase 4: Red Team Review & Critique (A13)
         red_team_prompt = build_system_prompt(
@@ -221,29 +190,8 @@ class StrategicPipeline:
             context_hint=request.research_question
         )
 
-        critique = RedTeamCritique(
-            verdict="accepted_with_revisions",
-            strengths=[
-                "شمولية محاور التحليل العسكري والاقتصادي والسياسي للمسرح المشترك [EVD-001].",
-                "الارتكاز على ثوابت الأمن القومي المصري وتأمين الممرات البحرية والحدود [EVD-003]."
-            ],
-            weaknesses=[
-                "الاعتماد على افتراض استقرار الأوضاع الداخلية لبعض الأطراف دون رصد كافٍ للضغوط التضخمية.",
-                "الحاجة لمزيد من الأدلة المستقلة حول البرامج التسليحية غير المعلنة."
-            ],
-            unsupported_claims=[],
-            counter_evidence=[
-                "بعض التقارير المفتوحة تشير إلى استمرار مخاطر الهجمات غير المتماثلة في ممرات الشحن البحري [EVD-004]."
-            ],
-            alternative_hypotheses=[
-                "قد تلجأ بعض الأطراف لتصعيد موضعي مفاجئ لتحسين شروط التفاوض دون نية خوض صراع شامل."
-            ],
-            key_assumptions_challenged=[
-                "افتراض أن الردع الحالي كافٍ لمنع كافة الاستفزازات البحرية دون زيادة الحضور العسكري المباشر."
-            ],
-            recommendations_for_chief="اعتماد التقدير مع مراعاة وضع خطط طوارئ إضافية لتأمين إمدادات الطاقة والممرات الملاحية."
-        )
-        assessment.red_team_critique = critique
+        # Dynamically Parse Red Team Critique from live A13 output
+        assessment.red_team_critique = parse_red_team_critique(red_raw)
 
         # Phase 5: Final Dissemination Gate
         assessment.status = AssessmentStatus.PENDING_REVIEW
