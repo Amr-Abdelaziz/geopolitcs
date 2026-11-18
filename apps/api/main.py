@@ -31,11 +31,14 @@ from packages.schemas.models import (
     WargameRequest,
     WargameSimulationResult,
     KnowledgeGraph,
+    OrbatTreeResponse,
+    OrbatUnit,
 )
 from packages.storage.database import DatabaseManager
 from services.orchestrator.pipeline import StrategicPipeline
 from services.reporting.generator import ReportGenerator
 from services.simulation.mirofish_client import MiroFishClient
+from services.orbat.orbat_service import OrbatService
 from contextlib import asynccontextmanager
 from services.warning.indicator_engine import IndicatorEngine
 from services.warning.radar_daemon import RadarDaemon
@@ -43,6 +46,7 @@ from services.warning.radar_daemon import RadarDaemon
 db = DatabaseManager()
 pipeline = StrategicPipeline(db=db)
 mirofish_client = MiroFishClient(llm_client=pipeline.llm)
+orbat_service = OrbatService()
 indicator_engine = IndicatorEngine()
 radar_daemon = RadarDaemon(
     osiris_client=pipeline.collector.client,
@@ -368,6 +372,27 @@ async def run_wargame_simulation(request: WargameRequest) -> WargameSimulationRe
             target_countries=request.target_countries
         )
     return await mirofish_client.run_simulation(request=request, evidence_list=evidence)
+
+
+# --- Order of Battle (ORBAT) Engine ---
+
+@app.get("/api/orbat", response_model=OrbatTreeResponse)
+async def get_orbat_tree(
+    country: Optional[str] = Query("All", description="Target country: Egypt, Libya, Israel, or All"),
+    branch: Optional[str] = Query("All", description="Branch filter: Ground, Naval, Air Force, Air Defense, Special Forces, Border Guard, or All"),
+    search: Optional[str] = Query(None, description="Search query across unit name, role, equipment, or location")
+) -> OrbatTreeResponse:
+    """Return hierarchical Order of Battle (ORBAT) command structure and echelons."""
+    return orbat_service.get_orbat_tree(country=country, branch=branch, search=search)
+
+
+@app.get("/api/orbat/{unit_id}", response_model=OrbatUnit)
+async def get_orbat_unit(unit_id: str) -> OrbatUnit:
+    """Retrieve full military dossier and technical specifications for a single ORBAT unit."""
+    unit = orbat_service.get_unit(unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail=f"Unit '{unit_id}' not found in Order of Battle")
+    return unit
 
 
 # Mount web dashboard if available

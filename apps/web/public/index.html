@@ -112,6 +112,10 @@
     <button onclick="switchTab('knowledge-graph')" id="tab-btn-knowledge-graph" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
       <span>🕸️ شبكة المعرفة (Knowledge Graph)</span>
     </button>
+    <button onclick="switchTab('orbat')" id="tab-btn-orbat" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-2">
+      <span>⚔️ ترتيب المعركة (ORBAT)</span>
+      <span class="px-1.5 py-0.2 rounded text-[10px] bg-purple-950 text-purple-300 border border-purple-800 font-mono">GeoConfirmed</span>
+    </button>
   </nav>
 
   <!-- Main Container -->
@@ -631,6 +635,182 @@
       </div>
     </section>
 
+    <!-- TAB 6: ORDER OF BATTLE (ORBAT) -->
+    <section id="tab-orbat" class="hidden space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-purple-950 text-purple-300 border border-purple-800">GeoConfirmed Standard</span>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <span>⚔️ شاشة ترتيب المعركة والهيكل التعبوي العسكري (Order of Battle - ORBAT)</span>
+            </h2>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">هيكل القيادة والسيطرة الهرمي، وتوزيع الجيوش الميدانية، والمناطق العسكرية، والفرق، والألوية، والقواعد الاستراتيجية لمصر وليبيا وإسرائيل</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span id="orbat-unit-count" class="text-xs px-2.5 py-1 rounded bg-gray-900 border border-gray-800 text-purple-300 font-mono">0 تشكيل مسجل</span>
+          <button onclick="reloadOrbat()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs flex items-center gap-1.5 transition">
+            <span>🔄 تحديث الشجرة</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls, Country Selectors & Branch Filters -->
+      <div class="glass-panel p-3.5 rounded-xl border border-purple-900/40 bg-purple-950/10 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <!-- Country Selector Pills -->
+          <div class="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+            <button onclick="switchOrbatCountry('All')" id="orbat-c-btn-All" class="orbat-c-btn px-3 py-1.5 rounded-lg bg-purple-600 text-white font-bold transition">
+              🌐 كافة مسارح العمليات
+            </button>
+            <button onclick="switchOrbatCountry('Egypt')" id="orbat-c-btn-Egypt" class="orbat-c-btn px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇪🇬 القوات المسلحة المصرية
+            </button>
+            <button onclick="switchOrbatCountry('Libya')" id="orbat-c-btn-Libya" class="orbat-c-btn px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇱🇾 التشكيلات المسلحة في ليبيا
+            </button>
+            <button onclick="switchOrbatCountry('Israel')" id="orbat-c-btn-Israel" class="orbat-c-btn px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition">
+              🇮🇱 القيادة الجنوبية الإسرائيلية
+            </button>
+          </div>
+
+          <!-- Hierarchy Expand / Collapse -->
+          <div class="flex items-center gap-1.5 text-xs font-mono">
+            <button onclick="expandAllOrbat()" class="px-2.5 py-1 rounded bg-gray-900 hover:bg-gray-800 border border-gray-800 text-gray-300 transition">
+              ➕ توسيع الكل
+            </button>
+            <button onclick="collapseAllOrbat()" class="px-2.5 py-1 rounded bg-gray-900 hover:bg-gray-800 border border-gray-800 text-gray-300 transition">
+              ➖ طي التشكيلات
+            </button>
+          </div>
+        </div>
+
+        <!-- Secondary Filter Bar (Search + Branch) -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2 border-t border-purple-900/30 text-xs">
+          <div class="relative flex-1">
+            <input id="input-orbat-search" type="text" placeholder="ابحث عن تشكيل أو لواء أو فرقة أو قاعدة أو سلاح (e.g. Abrams, السلوم, Rafale, جفعاتي)..." 
+              oninput="filterOrbatTree()"
+              class="w-full bg-gray-950 border border-gray-800 rounded-lg pr-9 pl-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-purple-500 font-medium">
+            <span class="absolute right-3 top-2.5 text-gray-500">🔍</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-gray-400 font-mono text-[11px] whitespace-nowrap">السلاح/الفرع:</span>
+            <select id="select-orbat-branch" onchange="filterOrbatTree()" class="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2 text-xs text-gray-200 focus:outline-none focus:border-purple-500 font-medium">
+              <option value="All">كافة الأسلحة والأفرع</option>
+              <option value="Ground">مشاة ومدرعات (Ground)</option>
+              <option value="Naval">القوات البحرية (Naval)</option>
+              <option value="Air Force">القوات الجوية (Air Force)</option>
+              <option value="Air Defense">الدفاع الجوي (Air Defense)</option>
+              <option value="Special Forces">قوات خاصة وصاعقة (Special Forces)</option>
+              <option value="Border Guard">حرس الحدود (Border Guard)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Panoramic Tree View & Dossier Sidebar Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <!-- Tree View Container (3 cols) -->
+        <div class="lg:col-span-3 glass-panel rounded-2xl p-4 border border-osiris-border bg-gray-950/80 min-h-[620px] flex flex-col justify-between overflow-hidden">
+          <div class="flex justify-between items-center mb-3 text-xs text-gray-400 border-b border-gray-800 pb-2">
+            <span class="font-mono flex items-center gap-1.5">
+              <span>الهيكل القيادي الهرمي للتشكيلات (ORBAT Tree Hierarchy)</span>
+            </span>
+            <span class="text-[11px] text-gray-500">💡 انقر على زر التوسيع [▼/▶] لفتح أو طي التشكيلات، أو انقر على البطاقة لفتح ملف الوحدة.</span>
+          </div>
+
+          <!-- Tree DOM Container with smooth scrolling -->
+          <div id="orbat-tree-viewport" class="flex-1 overflow-x-auto overflow-y-auto max-h-[580px] p-2 space-y-4">
+            <!-- Dynamically populated by renderOrbatTree() -->
+            <div class="text-xs text-purple-400 py-12 text-center animate-pulse">⚔️ جاري تحميل هيكل ترتيب المعركة والتشكيلات العسكرية...</div>
+          </div>
+
+          <!-- Echelon Legend -->
+          <div class="mt-3 pt-2.5 border-t border-gray-800/80 flex flex-wrap justify-between items-center text-[10px] text-gray-400 font-mono">
+            <div class="flex items-center gap-3">
+              <span class="flex items-center gap-1"><span class="px-1 py-0.2 rounded bg-purple-950 text-purple-400 border border-purple-800 text-[9px]">GHQ</span> قيادة عامة</span>
+              <span class="flex items-center gap-1"><span class="px-1 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[9px]">ARMY</span> جيش / منطقة</span>
+              <span class="flex items-center gap-1"><span class="px-1 py-0.2 rounded bg-blue-950 text-blue-400 border border-blue-800 text-[9px]">DIV</span> فرقة</span>
+              <span class="flex items-center gap-1"><span class="px-1 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 text-[9px]">BDE</span> لواء تعبوي</span>
+              <span class="flex items-center gap-1"><span class="px-1 py-0.2 rounded bg-amber-950 text-amber-400 border border-amber-800 text-[9px]">BASE</span> قاعدة استراتيجية</span>
+              <span class="flex items-center gap-1"><span class="px-1 py-0.2 rounded bg-rose-950 text-rose-400 border border-rose-800 text-[9px]">SOF</span> وحدة خاصة</span>
+            </div>
+            <span>GeoConfirmed OSINT Military Echelon Standard</span>
+          </div>
+        </div>
+
+        <!-- Unit Military Dossier Card (1 col) -->
+        <div id="orbat-inspector-card" class="glass-panel rounded-2xl p-4 border border-osiris-border space-y-4 flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex justify-between items-start">
+              <span id="dossier-echelon" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">GHQ</span>
+              <span id="dossier-country" class="text-xs font-mono text-gray-400">Egypt</span>
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2">
+                <span id="dossier-badge" class="text-xl">🦅</span>
+                <h4 id="dossier-title-ar" class="text-sm font-bold text-white">القيادة العامة للقوات المسلحة المصرية</h4>
+              </div>
+              <span id="dossier-title-en" class="text-[11px] text-gray-400 block font-mono mt-0.5">Egyptian Armed Forces GHQ</span>
+            </div>
+
+            <!-- Command Path Breadcrumb -->
+            <div class="p-2.5 bg-gray-900/90 rounded-xl border border-gray-800 text-[11px] space-y-1 font-mono">
+              <span class="text-gray-500 text-[10px] block">مسار التبعية القيادية:</span>
+              <div id="dossier-breadcrumb" class="text-emerald-400 font-medium">القيادة العامة > هيئة الأركان</div>
+            </div>
+
+            <!-- Commander & Location -->
+            <div class="space-y-1.5 text-xs text-gray-300">
+              <div class="flex items-start gap-1.5">
+                <span class="text-gray-500 font-mono text-[11px] w-20 flex-shrink-0">مقر التمركز:</span>
+                <span id="dossier-location" class="font-medium text-gray-200">الأوكتاجون - العاصمة الإدارية / القاهرة</span>
+              </div>
+              <div class="flex items-start gap-1.5">
+                <span class="text-gray-500 font-mono text-[11px] w-20 flex-shrink-0">القيادة:</span>
+                <span id="dossier-commander" class="font-medium text-purple-300">القائد العام وزير الدفاع</span>
+              </div>
+              <div class="flex items-start gap-1.5">
+                <span class="text-gray-500 font-mono text-[11px] w-20 flex-shrink-0">الجاهزية:</span>
+                <span id="dossier-readiness" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">High Readiness</span>
+              </div>
+            </div>
+
+            <!-- Role & Mission -->
+            <div>
+              <span class="text-[11px] font-bold text-gray-300 mb-1 block font-mono">المهام والواجبات التعبوية:</span>
+              <p id="dossier-mission" class="text-xs text-gray-300 leading-relaxed bg-gray-900/60 p-2.5 rounded-lg border border-gray-800/80">
+                القيادة العليا والسيطرة الاستراتيجية على كافة أفرع وتشكيلات القوات المسلحة وإدارة مسارح العمليات.
+              </p>
+            </div>
+
+            <!-- Equipment Tags -->
+            <div>
+              <span class="text-[11px] font-bold text-gray-300 mb-1.5 block font-mono">العتاد والتسليح الرئيسي:</span>
+              <div id="dossier-equipment" class="flex flex-wrap gap-1.5">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- Direct Subordinate Units -->
+            <div>
+              <span class="text-[11px] font-bold text-gray-300 mb-1.5 block font-mono">التشكيلات التابعة مباشرة:</span>
+              <div id="dossier-subunits" class="space-y-1 max-h-36 overflow-y-auto text-[11px]">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-gray-800 text-[10px] text-gray-500 font-mono text-center">
+            OSIRIS Order of Battle • Verified Military Intelligence
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Agent Edit Modal -->
     <div id="agent-edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <div class="glass-panel w-full max-w-3xl rounded-2xl border border-gray-700 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
@@ -743,7 +923,7 @@
     }
 
     function switchTab(tabId) {
-      ['analyst-room', 'early-warning', 'evidence-bank', 'agents-roster', 'knowledge-graph'].forEach(t => {
+      ['analyst-room', 'early-warning', 'evidence-bank', 'agents-roster', 'knowledge-graph', 'orbat'].forEach(t => {
         const el = document.getElementById(`tab-${t}`);
         const btn = document.getElementById(`tab-btn-${t}`);
         if (el) el.classList.toggle('hidden', t !== tabId);
@@ -759,6 +939,7 @@
       if (tabId === 'evidence-bank') loadEvidence();
       if (tabId === 'agents-roster') loadAgents();
       if (tabId === 'knowledge-graph') loadMainKnowledgeGraph();
+      if (tabId === 'orbat') loadOrbatTree();
     }
 
     async function checkHealth() {
@@ -2176,6 +2357,275 @@
         });
       }
       wargameGraphInstance.setData(graphData.nodes, graphData.edges);
+    }
+
+    // ==========================================
+    // ⚔️ ORDER OF BATTLE (ORBAT) INTERACTIVE ENGINE
+    // ==========================================
+
+    let currentOrbatCountry = 'All';
+    let currentOrbatBranch = 'All';
+    let currentOrbatSearch = '';
+    let cachedOrbatData = null;
+    let selectedOrbatUnit = null;
+    let collapsedOrbatNodes = new Set();
+    let orbatUnitLookup = {};
+
+    async function loadOrbatTree(forceReload = false) {
+      const container = document.getElementById('orbat-tree-viewport');
+      if (!container) return;
+
+      const branch = document.getElementById('select-orbat-branch')?.value || 'All';
+      const search = document.getElementById('input-orbat-search')?.value.trim() || '';
+
+      currentOrbatBranch = branch;
+      currentOrbatSearch = search;
+
+      try {
+        const queryParams = new URLSearchParams({
+          country: currentOrbatCountry,
+          branch: currentOrbatBranch,
+          search: currentOrbatSearch
+        });
+
+        const res = await fetch(`/api/orbat?${queryParams.toString()}`);
+        if (!res.ok) throw new Error("تعذر جلب بيانات ترتيب المعركة: " + res.status);
+
+        cachedOrbatData = await res.json();
+        
+        // Build flat lookup map
+        orbatUnitLookup = {};
+        if (cachedOrbatData.flat_units) {
+          cachedOrbatData.flat_units.forEach(u => { orbatUnitLookup[u.id] = u; });
+        }
+
+        document.getElementById('orbat-unit-count').textContent = `${cachedOrbatData.total_units} تشكيل مسجل`;
+
+        renderOrbatTree();
+
+        // Select first unit if none selected
+        if (!selectedOrbatUnit || !orbatUnitLookup[selectedOrbatUnit.id]) {
+          const defaultUnit = cachedOrbatData.roots?.[0] || cachedOrbatData.flat_units?.[0];
+          if (defaultUnit) inspectOrbatUnit(defaultUnit);
+        } else {
+          inspectOrbatUnit(orbatUnitLookup[selectedOrbatUnit.id]);
+        }
+      } catch (err) {
+        console.error("ORBAT load error:", err);
+        container.innerHTML = `<div class="text-xs text-rose-400 py-8 text-center">فشل تحميل هيكل ترتيب المعركة: ${err.message}</div>`;
+      }
+    }
+
+    function renderOrbatTree() {
+      const container = document.getElementById('orbat-tree-viewport');
+      if (!container || !cachedOrbatData) return;
+
+      if (!cachedOrbatData.roots || cachedOrbatData.roots.length === 0) {
+        container.innerHTML = `
+          <div class="text-xs text-gray-500 py-16 text-center">
+            <span class="text-2xl block mb-2">🔍</span>
+            لا توجد تشكيلات عسكرية مطابقة لمعايير البحث والتصفية الحالية.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = cachedOrbatData.roots.map(rootUnit => renderOrbatNode(rootUnit, 0)).join('');
+    }
+
+    function renderOrbatNode(unit, depth = 0) {
+      const hasChildren = unit.sub_units && unit.sub_units.length > 0;
+      const isCollapsed = collapsedOrbatNodes.has(unit.id);
+      const isSelected = selectedOrbatUnit && selectedOrbatUnit.id === unit.id;
+
+      const echelonColors = {
+        'GHQ': 'bg-purple-950 text-purple-300 border-purple-800',
+        'Theatre': 'bg-emerald-950 text-emerald-300 border-emerald-800',
+        'Army': 'bg-emerald-950 text-emerald-300 border-emerald-800',
+        'Corps': 'bg-blue-950 text-blue-300 border-blue-800',
+        'Division': 'bg-blue-950 text-blue-300 border-blue-800',
+        'Brigade': 'bg-cyan-950 text-cyan-300 border-cyan-800',
+        'Regiment': 'bg-teal-950 text-teal-300 border-teal-800',
+        'Base': 'bg-amber-950 text-amber-300 border-amber-800',
+        'Special_Unit': 'bg-rose-950 text-rose-300 border-rose-800'
+      };
+      const echBadge = echelonColors[unit.echelon] || 'bg-gray-800 text-gray-300 border-gray-700';
+
+      const readinessPills = {
+        'High Readiness': '<span class="w-2 h-2 rounded-full bg-emerald-500 inline-block" title="جاهزية قصوى"></span>',
+        'Active Combat': '<span class="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" title="قتال مباشر"></span>',
+        'Patrol/Deterrence': '<span class="w-2 h-2 rounded-full bg-amber-500 inline-block" title="دوريات وردع"></span>',
+        'Standby': '<span class="w-2 h-2 rounded-full bg-gray-500 inline-block" title="تمركز احتياطي"></span>'
+      };
+      const readyDot = readinessPills[unit.readiness_status] || '<span class="w-2 h-2 rounded-full bg-emerald-500"></span>';
+
+      const countryFlag = unit.country === 'Egypt' ? '🇪🇬' : (unit.country === 'Libya' ? '🇱🇾' : '🇮🇱');
+
+      const cardBorder = isSelected
+        ? 'border-emerald-500 ring-2 ring-emerald-500/40 bg-gray-900'
+        : 'border-gray-800 hover:border-gray-700 bg-gray-900/80';
+
+      return `
+        <div class="orbat-tree-node space-y-2 select-none" data-unit-id="${unit.id}">
+          <!-- Unit Card Header Box -->
+          <div class="glass-panel p-3 rounded-xl border ${cardBorder} transition duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 cursor-pointer"
+            onclick="inspectOrbatUnitById('${unit.id}')">
+            
+            <div class="flex items-center gap-2.5">
+              <!-- Expand / Collapse Toggle -->
+              ${hasChildren ? `
+                <button onclick="event.stopPropagation(); toggleOrbatNodeCollapse('${unit.id}')"
+                  class="w-6 h-6 rounded flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs transition">
+                  ${isCollapsed ? '▶' : '▼'}
+                </button>
+              ` : `
+                <span class="w-6 h-6 flex items-center justify-center text-gray-600 text-xs">•</span>
+              `}
+
+              <!-- Unit Crest / Badge -->
+              <span class="text-xl p-1 rounded bg-gray-950 border border-gray-800 flex items-center justify-center">${unit.badge_symbol || '🛡️'}</span>
+
+              <div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-xs">${countryFlag}</span>
+                  <span class="font-bold text-xs text-white">${unit.name_ar}</span>
+                  <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border ${echBadge}">${unit.echelon}</span>
+                  <span class="text-[10px] text-gray-400 font-mono">${readyDot}</span>
+                </div>
+                <div class="flex items-center gap-2 text-[10px] text-gray-400 font-mono mt-0.5">
+                  <span>${unit.name_en}</span>
+                  <span>•</span>
+                  <span class="text-gray-300">📍 ${unit.hq_location}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Right Controls / Status -->
+            <div class="flex items-center gap-2 text-[11px] self-end sm:self-center">
+              <span class="px-2 py-0.5 rounded bg-gray-950 border border-gray-800 text-gray-300 text-[10px] font-mono">
+                ${unit.branch}
+              </span>
+              ${hasChildren ? `
+                <span class="px-2 py-0.5 rounded ${isCollapsed ? 'bg-purple-950/80 text-purple-300 border border-purple-800' : 'bg-gray-950 text-gray-400'} text-[10px] font-mono">
+                  ${unit.sub_units.length} تشكيلات فرعية
+                </span>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Sub-units Recursive Container -->
+          ${hasChildren && !isCollapsed ? `
+            <div class="orbat-subunits-branch pr-4 mr-3 border-r-2 border-purple-900/40 space-y-2 mt-2">
+              ${unit.sub_units.map(sub => renderOrbatNode(sub, depth + 1)).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function toggleOrbatNodeCollapse(unitId) {
+      if (collapsedOrbatNodes.has(unitId)) {
+        collapsedOrbatNodes.delete(unitId);
+      } else {
+        collapsedOrbatNodes.add(unitId);
+      }
+      renderOrbatTree();
+    }
+
+    function inspectOrbatUnitById(unitId) {
+      const unit = orbatUnitLookup[unitId];
+      if (unit) inspectOrbatUnit(unit);
+    }
+
+    function inspectOrbatUnit(unit) {
+      if (!unit) return;
+      selectedOrbatUnit = unit;
+
+      // Update card elements
+      document.getElementById('dossier-echelon').textContent = unit.echelon;
+      document.getElementById('dossier-country').textContent = unit.country;
+      document.getElementById('dossier-badge').textContent = unit.badge_symbol || '🛡️';
+      document.getElementById('dossier-title-ar').textContent = unit.name_ar;
+      document.getElementById('dossier-title-en').textContent = `${unit.name_en} [${unit.id}]`;
+      document.getElementById('dossier-location').textContent = unit.hq_location;
+      document.getElementById('dossier-commander').textContent = unit.commander || 'غير معلن / هيئة العمليات المشتركة';
+      document.getElementById('dossier-readiness').textContent = unit.readiness_status;
+      document.getElementById('dossier-mission').textContent = unit.role_and_mission;
+
+      // Calculate hierarchy breadcrumb
+      const breadcrumb = [];
+      let curr = unit;
+      while (curr) {
+        breadcrumb.unshift(curr.name_ar);
+        curr = curr.parent_id ? orbatUnitLookup[curr.parent_id] : null;
+      }
+      document.getElementById('dossier-breadcrumb').textContent = breadcrumb.join(' > ');
+
+      // Equipment tags
+      const eqContainer = document.getElementById('dossier-equipment');
+      if (unit.equipment && unit.equipment.length > 0) {
+        eqContainer.innerHTML = unit.equipment.map(eq => `
+          <span class="px-2 py-0.5 rounded bg-gray-950 border border-purple-900/60 text-purple-300 text-[10px] font-mono">
+            ⚡ ${eq}
+          </span>
+        `).join('');
+      } else {
+        eqContainer.innerHTML = '<span class="text-gray-500 text-[10px]">تجهيزات وعتاد قياسي.</span>';
+      }
+
+      // Subordinate units list
+      const subContainer = document.getElementById('dossier-subunits');
+      if (unit.sub_units && unit.sub_units.length > 0) {
+        subContainer.innerHTML = unit.sub_units.map(sub => `
+          <div onclick="inspectOrbatUnitById('${sub.id}')"
+            class="p-1.5 rounded bg-gray-950/80 border border-gray-800 hover:border-emerald-700 cursor-pointer flex justify-between items-center transition">
+            <div class="flex items-center gap-1.5">
+              <span>${sub.badge_symbol || '🛡️'}</span>
+              <span class="font-bold text-gray-200 text-[11px]">${sub.name_ar}</span>
+            </div>
+            <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-gray-900 text-gray-400">${sub.echelon}</span>
+          </div>
+        `).join('');
+      } else {
+        subContainer.innerHTML = '<div class="text-gray-500 text-[10px]">لا توجد تشكيلات فرعية مباشرة لهذه الوحدة.</div>';
+      }
+
+      // Re-render tree so the selected card gets the highlighted border
+      renderOrbatTree();
+    }
+
+    function switchOrbatCountry(country) {
+      currentOrbatCountry = country;
+      document.querySelectorAll('.orbat-c-btn').forEach(btn => {
+        const isCurrent = btn.id === `orbat-c-btn-${country}`;
+        btn.className = isCurrent
+          ? "orbat-c-btn px-3 py-1.5 rounded-lg bg-purple-600 text-white font-bold transition"
+          : "orbat-c-btn px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition";
+      });
+      loadOrbatTree();
+    }
+
+    function filterOrbatTree() {
+      loadOrbatTree();
+    }
+
+    function expandAllOrbat() {
+      collapsedOrbatNodes.clear();
+      renderOrbatTree();
+    }
+
+    function collapseAllOrbat() {
+      if (!cachedOrbatData || !cachedOrbatData.flat_units) return;
+      cachedOrbatData.flat_units.forEach(u => {
+        if (u.sub_units && u.sub_units.length > 0) {
+          collapsedOrbatNodes.add(u.id);
+        }
+      });
+      renderOrbatTree();
+    }
+
+    function reloadOrbat() {
+      loadOrbatTree(true);
     }
 
     function toggleLang() {

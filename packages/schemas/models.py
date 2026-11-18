@@ -368,3 +368,30 @@ class WargameSimulationResult(BaseModel):
     red_team_vulnerabilities: List[str] = Field(default_factory=list)
     knowledge_graph: Optional[KnowledgeGraph] = None
     created_at: datetime = Field(default_factory=utc_now)
+
+
+# --- Order of Battle (ORBAT) Models ---
+
+class OrbatUnit(BaseModel):
+    id: str
+    name_ar: str
+    name_en: str
+    country: str  # Egypt, Libya, Israel
+    echelon: str  # GHQ, Theatre, Army, Corps, Division, Brigade, Regiment, Base, Special_Unit
+    branch: str  # Joint, Ground, Naval, Air Force, Air Defense, Special Forces, Border Guard
+    hq_location: str
+    commander: Optional[str] = None
+    role_and_mission: str
+    equipment: List[str] = Field(default_factory=list)
+    readiness_status: str = "High Readiness"  # High Readiness, Active Combat, Patrol/Deterrence, Standby
+    parent_id: Optional[str] = None
+    badge_symbol: str = "🛡️"
+    badge_color: str = "#10b981"
+    sub_units: List["OrbatUnit"] = Field(default_factory=list)
+
+
+class OrbatTreeResponse(BaseModel):
+    country: str
+    total_units: int
+    roots: List[OrbatUnit] = Field(default_factory=list)
+    flat_units: Optional[List[OrbatUnit]] = None
