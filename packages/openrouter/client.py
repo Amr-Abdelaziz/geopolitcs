@@ -9,8 +9,11 @@ import logging
 import os
 import re
 from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
 import httpx
 from packages.schemas.models import AgentID
+
+load_dotenv()
 
 log = logging.getLogger("strategic_osiris.openrouter")
 
