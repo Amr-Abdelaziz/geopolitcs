@@ -31,6 +31,9 @@ from packages.schemas.models import (
     WargameRequest,
     WargameSimulationResult,
     KnowledgeGraph,
+    KnowledgeDocument,
+    KnowledgeSearchRequest,
+    KnowledgeSearchResponse,
     OrbatCatalogItem,
     OrbatTreeResponse,
     OrbatUnit,
@@ -43,6 +46,8 @@ from services.orbat.orbat_service import OrbatService
 from contextlib import asynccontextmanager
 from services.warning.indicator_engine import IndicatorEngine
 from services.warning.radar_daemon import RadarDaemon
+from services.knowledge.knowledge_engine import knowledge_engine
+from services.knowledge.knowledge_graph_service import knowledge_graph_service
 
 db = DatabaseManager()
 pipeline = StrategicPipeline(db=db)
@@ -359,8 +364,63 @@ async def get_knowledge_graph(
     countries: Optional[str] = Query("Egypt,Libya,Israel", description="Comma-separated country list")
 ) -> KnowledgeGraph:
     """Return the active strategic knowledge graph connecting regional factions, chokepoints, and threats."""
-    country_list = [c.strip() for c in (countries or "").split(",") if c.strip()]
-    return mirofish_client.build_knowledge_graph(target_countries=country_list)
+    return knowledge_graph_service.build_graph()
+
+
+# --- Strategic Knowledge Base & Geopolitical Knowledge Graph ---
+
+@app.get("/api/knowledge/graph", response_model=KnowledgeGraph)
+async def get_enhanced_knowledge_graph(
+    theater: Optional[str] = Query(None, description="Filter by theater: all, egypt, libya, syria, red_sea, east_med, israel"),
+    node_type: Optional[str] = Query(None, description="Filter by type: all, actor, military_unit, chokepoint, resource, threat")
+) -> KnowledgeGraph:
+    """Return the dynamic geopolitical knowledge graph with ORBAT linkages and chokepoints."""
+    return knowledge_graph_service.build_graph(theater=theater, node_type=node_type)
+
+
+@app.get("/api/knowledge/documents", response_model=List[KnowledgeDocument])
+async def list_knowledge_documents(
+    category: Optional[str] = Query(None, description="Filter by category: doctrine, treaty, chokepoint, military_analysis, conflict_history")
+) -> List[KnowledgeDocument]:
+    """List all strategic defense doctrine, treaty, and intelligence documents."""
+    docs = knowledge_engine.get_all()
+    if category and category.lower() != "all":
+        docs = [d for d in docs if d.category.lower() == category.lower()]
+    return docs
+
+
+@app.get("/api/knowledge/documents/{doc_id}", response_model=KnowledgeDocument)
+async def get_knowledge_document(doc_id: str) -> KnowledgeDocument:
+    """Retrieve full strategic intelligence document by ID."""
+    doc = knowledge_engine.get_document(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Knowledge document '{doc_id}' not found")
+    return doc
+
+
+@app.get("/api/knowledge/query", response_model=KnowledgeSearchResponse)
+async def query_knowledge_base(
+    q: str = Query(..., description="Search query string"),
+    country: Optional[str] = Query(None, description="Optional target country"),
+    category: Optional[str] = Query(None, description="Optional category"),
+    limit: int = Query(5, ge=1, le=20)
+) -> KnowledgeSearchResponse:
+    """Semantic and lexical search across strategic doctrine and geopolitical treaties."""
+    target_countries = [c.strip() for c in country.split(",") if c.strip()] if country else None
+    results = knowledge_engine.search(query=q, target_countries=target_countries, category=category, limit=limit)
+    docs = [r[0] for r in results]
+    matched_entities = list({e for d in docs for e in d.key_entities})
+    return KnowledgeSearchResponse(
+        results=docs,
+        total_count=len(docs),
+        matched_entities=matched_entities[:10]
+    )
+
+
+@app.post("/api/knowledge/ingest", response_model=KnowledgeDocument)
+async def ingest_knowledge_document(doc: KnowledgeDocument) -> KnowledgeDocument:
+    """Ingest a new strategic doctrine or intelligence report into the persistent knowledge base."""
+    return knowledge_engine.ingest_document(doc)
 
 
 @app.post("/api/simulation/wargame", response_model=WargameSimulationResult)

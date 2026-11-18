@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 from packages.schemas.models import AdmiraltyCredibility, AdmiraltyReliability, DocumentEvidence, utc_now
 from services.collection.web_search import WebSearchClient
+from services.knowledge.knowledge_engine import KnowledgeEngine, knowledge_engine
 
 log = logging.getLogger("strategic_osiris.collection")
 
@@ -124,10 +125,12 @@ class EvidenceCollector:
     def __init__(
         self,
         osiris_client: Optional[OsirisClient] = None,
-        web_search_client: Optional[WebSearchClient] = None
+        web_search_client: Optional[WebSearchClient] = None,
+        knowledge_engine_inst: Optional[KnowledgeEngine] = None
     ):
         self.client = osiris_client or OsirisClient()
         self.web_search = web_search_client or WebSearchClient()
+        self.knowledge = knowledge_engine_inst or knowledge_engine
         self.store: Dict[str, DocumentEvidence] = {}
         # Preload baseline
         for item in DEFAULT_EVIDENCES:
@@ -151,6 +154,17 @@ class EvidenceCollector:
         target_countries: List[str]
     ) -> List[DocumentEvidence]:
         """Collect and filter evidence from live OSIRIS feeds, real-time web search, and strategic defense baselines."""
+        # 0. Ingest verified strategic doctrine & chokepoint treaties from Knowledge Base
+        kb_docs = self.knowledge.search_as_evidence(
+            query=research_question,
+            target_countries=target_countries,
+            limit=4
+        )
+        for kdoc in kb_docs:
+            self.store[kdoc.id] = kdoc
+        if kb_docs:
+            log.info("Ingested %d strategic doctrine documents from Knowledge Base", len(kb_docs))
+
         # 1. Fetch live news items from OSIRIS
         osiris_news = await self.client.fetch_news(limit=40)
         for idx, item in enumerate(osiris_news):

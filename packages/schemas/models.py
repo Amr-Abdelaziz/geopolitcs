@@ -307,10 +307,17 @@ class GraphNode(BaseModel):
     id: str
     label_ar: str
     label_en: str
-    node_type: str = "actor"  # actor, chokepoint, threat, resource, alliance
+    node_type: str = "actor"  # actor, military_unit, chokepoint, threat, resource, alliance
     country: str = "Regional"
     details: Optional[str] = None
     level: int = 1  # 1 (primary) to 3 (subsidiary)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    placemark_url: Optional[str] = None
+    logo_url: Optional[str] = None
+    unit_id: Optional[str] = None
+    theater: Optional[str] = "regional"
+    doctrine_ref: Optional[str] = None
 
 
 class GraphEdge(BaseModel):
@@ -325,6 +332,36 @@ class GraphEdge(BaseModel):
 class KnowledgeGraph(BaseModel):
     nodes: List[GraphNode] = Field(default_factory=list)
     edges: List[GraphEdge] = Field(default_factory=list)
+    theaters: List[str] = Field(default_factory=list)
+    categories: List[str] = Field(default_factory=list)
+
+
+class KnowledgeDocument(BaseModel):
+    id: str
+    title_ar: str
+    title_en: str
+    category: str = "doctrine"  # doctrine, treaty, chokepoint, military_analysis, conflict_history
+    country_coverage: List[str] = Field(default_factory=list)
+    summary: str
+    content: str
+    reliability: AdmiraltyReliability = AdmiraltyReliability.A
+    credibility: AdmiraltyCredibility = AdmiraltyCredibility.ONE
+    key_entities: List[str] = Field(default_factory=list)
+    sources: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class KnowledgeSearchRequest(BaseModel):
+    query: str
+    target_countries: Optional[List[str]] = None
+    category: Optional[str] = None
+    limit: int = 10
+
+
+class KnowledgeSearchResponse(BaseModel):
+    results: List[KnowledgeDocument]
+    total_count: int
+    matched_entities: List[str] = Field(default_factory=list)
 
 
 class WargameActor(BaseModel):

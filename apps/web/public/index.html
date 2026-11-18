@@ -511,8 +511,11 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 class="text-base font-bold text-white">بنك الأدلة والمصادر المفتوحة وبحث الويب الحي (OSINT & Live Web Search)</h2>
-          <p class="text-xs text-gray-400">توثيق وقائع OSIRIS وبحث الويب المباشر وفق كود Admiralty القياسي (A-F موثوقية، 1-6 مصداقية)</p>
+          <p class="text-xs text-gray-400">توثيق وقائع OSIRIS وبحث الويب المباشر ووثائق العقيدة وفق كود Admiralty القياسي (A-F موثوقية، 1-6 مصداقية)</p>
         </div>
+        <button onclick="openKnowledgeDocumentsModal()" class="px-3.5 py-2 rounded-lg bg-purple-900/60 hover:bg-purple-800 border border-purple-700/80 text-purple-200 font-bold text-xs flex items-center gap-2 transition shadow">
+          <span>📖 بنك وثائق العقيدة والمواثيق الجيوسياسية</span>
+        </button>
       </div>
 
       <!-- Live Web Search Box -->
@@ -565,16 +568,33 @@
         </div>
         
         <!-- Controls & Filter Toolbar -->
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2">
+          <!-- Theater Selector -->
+          <div class="flex items-center gap-1 bg-gray-900 border border-purple-900/40 rounded-lg p-1 text-[11px]">
+            <span class="text-gray-400 font-mono text-[10px] px-1.5">المسرح:</span>
+            <button onclick="switchGraphTheater('all')" id="kg-th-all" class="kg-th-btn px-2 py-0.5 rounded bg-purple-700 text-white font-bold">الكل</button>
+            <button onclick="switchGraphTheater('egypt')" id="kg-th-egypt" class="kg-th-btn px-2 py-0.5 rounded hover:bg-gray-800 text-gray-300">🇪🇬 مصر</button>
+            <button onclick="switchGraphTheater('libya')" id="kg-th-libya" class="kg-th-btn px-2 py-0.5 rounded hover:bg-gray-800 text-gray-300">🇱🇾 ليبيا</button>
+            <button onclick="switchGraphTheater('syria')" id="kg-th-syria" class="kg-th-btn px-2 py-0.5 rounded hover:bg-gray-800 text-gray-300">🇸🇾 سوريا</button>
+            <button onclick="switchGraphTheater('red_sea')" id="kg-th-red_sea" class="kg-th-btn px-2 py-0.5 rounded hover:bg-gray-800 text-gray-300">🌊 البحر الأحمر</button>
+            <button onclick="switchGraphTheater('east_med')" id="kg-th-east_med" class="kg-th-btn px-2 py-0.5 rounded hover:bg-gray-800 text-gray-300">⚡ شرق المتوسط</button>
+          </div>
+
+          <!-- Category Filter -->
           <div class="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1 text-[11px]">
             <button onclick="filterMainGraph('all')" id="kg-btn-all" class="kg-filter-btn px-2.5 py-1 rounded bg-emerald-600 text-white font-bold" data-filter="all">الكل</button>
             <button onclick="filterMainGraph('actor')" id="kg-btn-actor" class="kg-filter-btn px-2.5 py-1 rounded hover:bg-gray-800 text-gray-300" data-filter="actor">القيادات العسكرية</button>
+            <button onclick="filterMainGraph('military_unit')" id="kg-btn-military_unit" class="kg-filter-btn px-2.5 py-1 rounded hover:bg-gray-800 text-gray-300" data-filter="military_unit">التشكيلات التعبوية</button>
             <button onclick="filterMainGraph('chokepoint')" id="kg-btn-chokepoint" class="kg-filter-btn px-2.5 py-1 rounded hover:bg-gray-800 text-gray-300" data-filter="chokepoint">الممرات والمضائق</button>
             <button onclick="filterMainGraph('resource')" id="kg-btn-resource" class="kg-filter-btn px-2.5 py-1 rounded hover:bg-gray-800 text-gray-300" data-filter="resource">حقول الغاز</button>
             <button onclick="filterMainGraph('threat')" id="kg-btn-threat" class="kg-filter-btn px-2.5 py-1 rounded hover:bg-gray-800 text-gray-300" data-filter="threat">بؤر التهديد</button>
           </div>
-          <button onclick="reloadMainGraph()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs flex items-center gap-1">
-            <span>🔄 إعادة ضبط الشبكة</span>
+
+          <button onclick="openKnowledgeDocumentsModal()" class="px-2.5 py-1.5 rounded-lg bg-purple-900/50 hover:bg-purple-800 border border-purple-700/60 text-purple-200 text-xs flex items-center gap-1 transition">
+            <span>📖 وثائق العقيدة</span>
+          </button>
+          <button onclick="reloadMainGraph()" class="px-2.5 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs flex items-center gap-1">
+            <span>🔄 إعادة ضبط</span>
           </button>
         </div>
       </div>
@@ -596,6 +616,7 @@
             <div class="flex items-center gap-3">
               <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 🇪🇬 قيادة مصرية</span>
               <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 🇱🇾 فصائل ليبيا</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> 🇸🇾 سوريا (6474)</span>
               <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span> 🇮🇱 إسرائيل</span>
               <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span> 🌊 ممرات ومضائق</span>
               <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span> 🛢️ حقول طاقة</span>
@@ -607,29 +628,54 @@
 
         <!-- Node Inspector Sidebar -->
         <div id="kg-inspector-card" class="glass-panel rounded-2xl p-4 border border-osiris-border space-y-4 flex flex-col justify-between">
-          <div>
-            <div class="flex justify-between items-start mb-2">
+          <div class="space-y-3">
+            <div class="flex justify-between items-start mb-1">
               <span id="inspect-node-type" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">STATE_ACTOR</span>
               <span id="inspect-node-country" class="text-xs font-mono text-gray-400">Egypt</span>
             </div>
-            <h4 id="inspect-node-title-ar" class="text-sm font-bold text-white mb-0.5">انقر على أي عقدة بالشبكة</h4>
-            <span id="inspect-node-title-en" class="text-[11px] text-gray-400 block font-mono mb-3">Click any node to inspect relationships</span>
+            
+            <div class="flex items-center gap-2.5">
+              <img id="inspect-node-logo" class="w-10 h-10 object-contain rounded-lg p-0.5 bg-black border border-purple-800/80 hidden" onerror="this.classList.add('hidden')">
+              <div class="min-w-0 flex-1">
+                <h4 id="inspect-node-title-ar" class="text-sm font-bold text-white mb-0.5 leading-snug">انقر على أي عقدة بالشبكة</h4>
+                <span id="inspect-node-title-en" class="text-[11px] text-gray-400 block font-mono truncate">Click any node to inspect relationships</span>
+              </div>
+            </div>
             
             <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800 text-xs text-gray-300 leading-relaxed space-y-2">
               <p id="inspect-node-details" class="text-gray-300">حدد أحد مراكز القيادة أو المعابر الحاكمة في الخريطة التفاعلية لعرض التوصيف الاستراتيجي وقائمة العلاقات المباشرة.</p>
             </div>
 
+            <!-- Geospatial & Placemark Details -->
+            <div id="inspect-geospatial-box" class="p-2.5 rounded-xl bg-purple-950/20 border border-purple-900/50 space-y-2 text-xs hidden">
+              <div class="flex justify-between items-center font-mono text-[10px]">
+                <span class="text-purple-300 font-bold">📍 الرصد المكاني:</span>
+                <span id="inspect-node-coords" class="text-cyan-300 select-all font-bold"></span>
+              </div>
+              <div class="flex gap-1.5 pt-0.5">
+                <a id="inspect-pm-btn" href="#" target="_blank" class="flex-1 py-1 px-1.5 rounded bg-purple-800 hover:bg-purple-700 text-white text-[10px] font-bold text-center transition">📍 GeoConfirmed</a>
+                <a id="inspect-maps-btn" href="#" target="_blank" class="flex-1 py-1 px-1.5 rounded bg-gray-800 hover:bg-gray-700 text-gray-200 text-[10px] text-center border border-gray-700 transition">🌍 Google Maps</a>
+                <button id="inspect-orbat-btn" onclick="openNodeInOrbat()" class="flex-1 py-1 px-1.5 rounded bg-emerald-800 hover:bg-emerald-700 text-white text-[10px] text-center transition hidden">🛡️ ORBAT</button>
+              </div>
+            </div>
+
+            <!-- Doctrine Reference -->
+            <div id="inspect-doctrine-box" class="p-2 rounded-lg bg-gray-900/90 border border-emerald-900/50 text-[10px] text-emerald-400 font-mono flex items-center justify-between hidden">
+              <span>📖 مرجع العقيدة:</span>
+              <button id="inspect-doctrine-link" onclick="openDoctrineByRef()" class="underline hover:text-emerald-300 font-bold"></button>
+            </div>
+
             <!-- Connected Edges List -->
-            <div class="mt-4">
+            <div>
               <h5 class="text-[11px] font-bold text-gray-300 mb-2 font-mono">الروابط والعلاقات المتصلة:</h5>
-              <div id="inspect-connected-edges" class="space-y-1.5 max-h-56 overflow-y-auto text-[11px]">
+              <div id="inspect-connected-edges" class="space-y-1.5 max-h-44 overflow-y-auto text-[11px]">
                 <div class="text-gray-500 text-[10px]">لا توجد عقدة محددة حالياً.</div>
               </div>
             </div>
           </div>
 
           <div class="pt-3 border-t border-gray-800 text-[10px] text-gray-500 font-mono text-center">
-            OSIRIS Strategic Entity Knowledge Graph
+            OSIRIS Strategic Entity Knowledge Graph • Grounded in Military Doctrine
           </div>
         </div>
       </div>
@@ -909,6 +955,52 @@
         </div>
       </div>
     </section>
+
+    <!-- KNOWLEDGE BASE DOCTRINE & DOCUMENTS MODAL -->
+    <div id="knowledge-docs-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="glass-panel w-full max-w-4xl max-h-[90vh] rounded-2xl border border-osiris-border p-6 flex flex-col justify-between overflow-hidden shadow-2xl bg-gray-950/90">
+        <div class="flex justify-between items-center pb-4 border-b border-gray-800">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl p-2 rounded-xl bg-purple-950/60 border border-purple-800">📖</span>
+            <div>
+              <h3 class="text-base font-bold text-white">بنك وثائق العقيدة الدفاعية والمواثيق الجيوسياسية</h3>
+              <p class="text-xs text-gray-400 font-mono">Strategic Defense Doctrine & International Maritime Treaties Repository</p>
+            </div>
+          </div>
+          <button onclick="closeKnowledgeDocumentsModal()" class="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 flex items-center justify-center font-bold">✕</button>
+        </div>
+
+        <div class="py-3 flex flex-wrap gap-2 items-center">
+          <input type="text" id="kb-search-input" placeholder="🔍 بحث في وثائق العقيدة، مضيق باب المندب، اتفاقيات شرق المتوسط..."
+            oninput="searchKnowledgeDocs(this.value)"
+            class="flex-1 min-w-[260px] bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+          <select id="kb-category-select" onchange="filterKnowledgeDocsCategory(this.value)"
+            class="bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-2 text-xs text-purple-300 focus:outline-none">
+            <option value="all">كافة التصنيفات</option>
+            <option value="doctrine">العقيدة العسكرية الدفاعية</option>
+            <option value="chokepoint">الممرات والمضائق البحرية</option>
+            <option value="treaty">المعاهدات والاتفاقيات</option>
+            <option value="military_analysis">التحليلات العسكرية الميدانية</option>
+            <option value="conflict_history">خلفيات الصراع والتوازنات</option>
+          </select>
+        </div>
+
+        <!-- Document Cards Grid & Detailed View -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 overflow-y-auto my-2 pr-1 min-h-[360px]">
+          <div id="kb-docs-list" class="space-y-2 md:col-span-1 border-r border-gray-800/80 pr-2 overflow-y-auto max-h-[460px]">
+            <!-- Dynamically populated -->
+          </div>
+          <div id="kb-doc-detail-view" class="md:col-span-2 p-4 bg-gray-900/60 rounded-xl border border-gray-800/80 space-y-3 overflow-y-auto max-h-[460px]">
+            <div class="text-center py-20 text-gray-500 text-xs">اختر وثيقة من القائمة للاطلاع على كامل بنود العقيدة والتوثيق المرجعي.</div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-gray-800 flex justify-between items-center text-[11px] text-gray-500 font-mono">
+          <span>Admiralty Code Verified • Strategic OSIRIS Knowledge Engine</span>
+          <button onclick="closeKnowledgeDocumentsModal()" class="px-4 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200">إغلاق النافذة</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Agent Edit Modal -->
     <div id="agent-edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -2301,7 +2393,9 @@
           if (type === 'all') {
             n.visible = true;
           } else if (type === 'actor') {
-            n.visible = (n.node_type === 'actor' || n.node_type === 'military_unit');
+            n.visible = (n.node_type === 'actor');
+          } else if (type === 'military_unit') {
+            n.visible = (n.node_type === 'military_unit');
           } else {
             n.visible = (n.node_type === type);
           }
@@ -2335,22 +2429,24 @@
     let mainGraphInstance = null;
     let wargameGraphInstance = null;
     let cachedGraphData = null;
+    let currentGraphTheater = 'all';
+    let activeSelectedGraphNode = null;
 
-    async function loadMainKnowledgeGraph(forceReload = false) {
+    async function loadMainKnowledgeGraph(forceReload = false, theater = null) {
+      if (theater !== null) currentGraphTheater = theater;
       const canvas = document.getElementById('main-knowledge-graph-canvas');
       if (!canvas) return;
 
-      if (mainGraphInstance && !forceReload) {
+      if (mainGraphInstance && !forceReload && theater === null) {
         mainGraphInstance.initDPI();
         return;
       }
 
       try {
-        if (!cachedGraphData || forceReload) {
-          const res = await fetch('/api/simulation/graph');
-          if (!res.ok) throw new Error("تعذر جلب شبكة المعرفة من الخادم: " + res.status);
-          cachedGraphData = await res.json();
-        }
+        const url = `/api/knowledge/graph?theater=${currentGraphTheater}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("تعذر جلب شبكة المعرفة من الخادم: " + res.status);
+        cachedGraphData = await res.json();
 
         if (!mainGraphInstance) {
           mainGraphInstance = new ForceKnowledgeGraph('main-knowledge-graph-canvas', {
@@ -2366,13 +2462,26 @@
       }
     }
 
+    function switchGraphTheater(theater) {
+      currentGraphTheater = theater;
+      document.querySelectorAll('.kg-th-btn').forEach(b => {
+        const match = b.id === `kg-th-${theater}`;
+        b.className = match
+          ? "kg-th-btn px-2 py-0.5 rounded bg-purple-700 text-white font-bold"
+          : "kg-th-btn px-2 py-0.5 rounded hover:bg-gray-800 text-gray-300";
+      });
+      loadMainKnowledgeGraph(true, theater);
+    }
+
     function inspectGraphNode(node, connectedEdges, nodeMap) {
+      activeSelectedGraphNode = node;
       const typeEl = document.getElementById('inspect-node-type');
       const countryEl = document.getElementById('inspect-node-country');
       const titleArEl = document.getElementById('inspect-node-title-ar');
       const titleEnEl = document.getElementById('inspect-node-title-en');
       const detailsEl = document.getElementById('inspect-node-details');
       const edgesListEl = document.getElementById('inspect-connected-edges');
+      const logoEl = document.getElementById('inspect-node-logo');
 
       if (!typeEl || !node) return;
 
@@ -2387,9 +2496,59 @@
       typeEl.textContent = typeLabels[node.node_type] || node.node_type;
       countryEl.textContent = node.country || 'إقليمي';
       titleArEl.textContent = node.label_ar;
-      const titleEnText = `${node.label_en} [${node.id}]`;
-      titleEnEl.textContent = titleEnText;
+      titleEnEl.textContent = `${node.label_en} [${node.id}]`;
       detailsEl.textContent = node.details || 'لا تتوفر تفاصيل إضافية للعقدة المحددة.';
+
+      if (logoEl) {
+        if (node.logo_url) {
+          logoEl.src = node.logo_url;
+          logoEl.classList.remove('hidden');
+        } else {
+          logoEl.classList.add('hidden');
+        }
+      }
+
+      // Geospatial & Placemark Details
+      const geoBox = document.getElementById('inspect-geospatial-box');
+      const coordsSpan = document.getElementById('inspect-node-coords');
+      const pmBtn = document.getElementById('inspect-pm-btn');
+      const mapsBtn = document.getElementById('inspect-maps-btn');
+      const orbatBtn = document.getElementById('inspect-orbat-btn');
+
+      if (geoBox) {
+        if (node.latitude && node.longitude) {
+          geoBox.classList.remove('hidden');
+          coordsSpan.textContent = `${Number(node.latitude).toFixed(4)}, ${Number(node.longitude).toFixed(4)}`;
+          mapsBtn.href = `https://www.google.com/maps?q=${node.latitude},${node.longitude}`;
+          
+          if (node.placemark_url) {
+            pmBtn.href = node.placemark_url;
+            pmBtn.classList.remove('hidden');
+          } else {
+            pmBtn.classList.add('hidden');
+          }
+
+          if (node.unit_id) {
+            orbatBtn.classList.remove('hidden');
+          } else {
+            orbatBtn.classList.add('hidden');
+          }
+        } else {
+          geoBox.classList.add('hidden');
+        }
+      }
+
+      // Doctrine Reference Box
+      const doctrineBox = document.getElementById('inspect-doctrine-box');
+      const doctrineLink = document.getElementById('inspect-doctrine-link');
+      if (doctrineBox && doctrineLink) {
+        if (node.doctrine_ref) {
+          doctrineBox.classList.remove('hidden');
+          doctrineLink.textContent = node.doctrine_ref;
+        } else {
+          doctrineBox.classList.add('hidden');
+        }
+      }
 
       if (connectedEdges.length === 0) {
         edgesListEl.innerHTML = '<div class="text-gray-500 text-[10px]">لا توجد روابط مباشرة مسجلة لهذه العقدة.</div>';
@@ -2417,6 +2576,152 @@
             </div>
           `;
         }).join('');
+      }
+    }
+
+    // Knowledge Base Documents & Doctrine Modal Handlers
+    let cachedKnowledgeDocs = [];
+    let selectedKnowledgeDoc = null;
+
+    async function openKnowledgeDocumentsModal(targetRefId = null) {
+      const modal = document.getElementById('knowledge-docs-modal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      if (cachedKnowledgeDocs.length === 0) {
+        await loadKnowledgeDocs();
+      }
+      if (targetRefId) {
+        const found = cachedKnowledgeDocs.find(d => d.id === targetRefId);
+        if (found) selectKnowledgeDoc(found.id);
+      } else if (cachedKnowledgeDocs.length > 0) {
+        selectKnowledgeDoc(cachedKnowledgeDocs[0].id);
+      }
+    }
+
+    function closeKnowledgeDocumentsModal() {
+      const modal = document.getElementById('knowledge-docs-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    async function loadKnowledgeDocs() {
+      try {
+        const res = await fetch('/api/knowledge/documents');
+        if (!res.ok) throw new Error("تعذر جلب وثائق العقيدة");
+        cachedKnowledgeDocs = await res.json();
+        renderKnowledgeDocsList(cachedKnowledgeDocs);
+      } catch (e) {
+        console.error("Knowledge Docs fetch error:", e);
+      }
+    }
+
+    function renderKnowledgeDocsList(docs) {
+      const listEl = document.getElementById('kb-docs-list');
+      if (!listEl) return;
+      if (!docs || docs.length === 0) {
+        listEl.innerHTML = '<div class="text-gray-500 text-xs py-8 text-center">لا توجد وثائق مطابقة لمعايير البحث.</div>';
+        return;
+      }
+      listEl.innerHTML = docs.map(doc => `
+        <div onclick="selectKnowledgeDoc('${doc.id}')"
+          class="p-2.5 rounded-xl border ${selectedKnowledgeDoc && selectedKnowledgeDoc.id === doc.id ? 'border-purple-600 bg-purple-950/40' : 'border-gray-800 bg-gray-900/60 hover:border-gray-700'} cursor-pointer transition text-xs space-y-1">
+          <div class="flex justify-between items-start">
+            <span class="font-mono text-[9px] px-1.5 py-0.2 rounded bg-purple-950 text-purple-300 border border-purple-800">${doc.id}</span>
+            <span class="text-[9px] font-mono text-emerald-400 font-bold">${doc.reliability}${doc.credibility}</span>
+          </div>
+          <h4 class="font-bold text-gray-100 text-xs leading-snug">${doc.title_ar}</h4>
+          <p class="text-[10px] text-gray-400 line-clamp-2">${doc.summary}</p>
+        </div>
+      `).join('');
+    }
+
+    function selectKnowledgeDoc(docId) {
+      const doc = cachedKnowledgeDocs.find(d => d.id === docId);
+      if (!doc) return;
+      selectedKnowledgeDoc = doc;
+      renderKnowledgeDocsList(cachedKnowledgeDocs);
+
+      const detailEl = document.getElementById('kb-doc-detail-view');
+      if (!detailEl) return;
+
+      detailEl.innerHTML = `
+        <div class="space-y-3">
+          <div class="flex justify-between items-start border-b border-gray-800 pb-2">
+            <div>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800 font-bold">${doc.id} • ${doc.category.toUpperCase()}</span>
+              <h3 class="text-sm font-bold text-white mt-1.5">${doc.title_ar}</h3>
+              <span class="text-xs text-gray-400 font-mono block">${doc.title_en}</span>
+            </div>
+            <div class="text-left font-mono text-[10px]">
+              <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold block">Admiralty: ${doc.reliability}${doc.credibility}</span>
+              <span class="text-gray-500 mt-1 block">${doc.country_coverage.join(', ')}</span>
+            </div>
+          </div>
+
+          <div class="p-3 bg-purple-950/20 rounded-xl border border-purple-900/40 text-xs text-purple-200">
+            <span class="font-bold block mb-1">الخلاصة التقديرية (Executive Brief):</span>
+            <p class="leading-relaxed text-gray-300">${doc.summary}</p>
+          </div>
+
+          <div>
+            <span class="text-xs font-bold text-gray-200 font-mono block mb-1.5">نص العقيدة والمحددات الاستراتيجية:</span>
+            <div class="text-xs text-gray-300 leading-relaxed bg-gray-900/80 p-3.5 rounded-xl border border-gray-800 whitespace-pre-line">
+              ${doc.content}
+            </div>
+          </div>
+
+          <div>
+            <span class="text-[11px] font-bold text-gray-300 font-mono block mb-1">الكيانات الاستراتيجية المرتبطة:</span>
+            <div class="flex flex-wrap gap-1.5">
+              ${doc.key_entities.map(e => `<span class="px-2 py-0.5 rounded bg-gray-900 text-cyan-300 text-[10px] font-mono border border-gray-800">⚡ ${e}</span>`).join('')}
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-gray-800 text-[10px] text-gray-500 font-mono">
+            <span class="block font-bold mb-0.5">المصادر المرجعية الموثقة:</span>
+            ${doc.sources.map(s => `<div>• ${s}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function searchKnowledgeDocs(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        renderKnowledgeDocsList(cachedKnowledgeDocs);
+        return;
+      }
+      const filtered = cachedKnowledgeDocs.filter(d => 
+        d.title_ar.toLowerCase().includes(q) ||
+        d.title_en.toLowerCase().includes(q) ||
+        d.summary.toLowerCase().includes(q) ||
+        d.key_entities.some(e => e.toLowerCase().includes(q))
+      );
+      renderKnowledgeDocsList(filtered);
+    }
+
+    function filterKnowledgeDocsCategory(cat) {
+      if (cat === 'all') {
+        renderKnowledgeDocsList(cachedKnowledgeDocs);
+        return;
+      }
+      const filtered = cachedKnowledgeDocs.filter(d => d.category.toLowerCase() === cat.toLowerCase());
+      renderKnowledgeDocsList(filtered);
+    }
+
+    function openDoctrineByRef() {
+      if (activeSelectedGraphNode && activeSelectedGraphNode.doctrine_ref) {
+        openKnowledgeDocumentsModal(activeSelectedGraphNode.doctrine_ref);
+      }
+    }
+
+    function openNodeInOrbat() {
+      if (activeSelectedGraphNode && activeSelectedGraphNode.unit_id) {
+        switchTab('orbat');
+        const theater = activeSelectedGraphNode.theater || 'egypt';
+        switchOrbatCatalog(theater);
+        setTimeout(() => {
+          inspectOrbatUnitById(activeSelectedGraphNode.unit_id);
+        }, 300);
       }
     }
 

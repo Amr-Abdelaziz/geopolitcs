@@ -785,3 +785,7 @@ class OrbatService:
         )
         self._cached_trees[matched_cat["url_name"]] = resp
         return resp
+
+
+# Singleton instance
+orbat_service = OrbatService()
