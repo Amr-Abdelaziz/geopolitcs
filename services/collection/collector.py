@@ -1,5 +1,5 @@
-"""Strategic OSIRIS - OSIRIS and Pythia Integration Client.
-Connects to OSIRIS situational awareness API and PYTHIA forecast engine.
+"""Strategic OSIRIS - OSIRIS Direct Integration Client.
+Connects directly to the OSIRIS situational awareness and intelligence API.
 Provides built-in live feeds and rich fallback fixtures for Egypt, Libya, and Israel.
 """
 from __future__ import annotations
@@ -72,26 +72,25 @@ DEFAULT_EVIDENCES: List[Dict[str, Any]] = [
 class OsirisClient:
     def __init__(self, base_url: Optional[str] = None):
         self.base_url = base_url or os.environ.get("OSIRIS_URL", "http://localhost:3000")
-        self.pythia_url = os.environ.get("PYTHIA_URL", "http://localhost:8088")
 
     async def fetch_events(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """Fetch raw events from OSIRIS or PYTHIA if live, otherwise return baseline events."""
+        """Fetch raw events from OSIRIS directly if available, otherwise return baseline events."""
         try:
             async with httpx.AsyncClient(timeout=4.0) as client:
-                res = await client.get(f"{self.pythia_url}/agent/events?limit={limit}")
+                res = await client.get(f"{self.base_url}/api/events?limit={limit}")
                 if res.status_code == 200:
                     data = res.json()
-                    log.info("Fetched %d events from live Pythia engine", len(data))
+                    log.info("Fetched %d events from live OSIRIS instance", len(data))
                     return data
         except Exception as e:
-            log.debug("Pythia/OSIRIS not reachable at %s: %s; using baseline fixtures", self.pythia_url, str(e))
+            log.debug("OSIRIS not reachable at %s: %s; using baseline fixtures", self.base_url, str(e))
         return DEFAULT_EVIDENCES
 
     async def fetch_brief(self) -> Dict[str, Any]:
-        """Fetch world brief from Pythia engine if live."""
+        """Fetch world brief from OSIRIS if live."""
         try:
             async with httpx.AsyncClient(timeout=4.0) as client:
-                res = await client.get(f"{self.pythia_url}/brief")
+                res = await client.get(f"{self.base_url}/api/brief")
                 if res.status_code == 200:
                     return res.json()
         except Exception:

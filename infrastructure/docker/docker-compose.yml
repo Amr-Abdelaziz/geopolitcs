@@ -15,7 +15,6 @@ services:
       - SITE_URL=${SITE_URL:-https://osiris.yourdomain.com}
       - APP_NAME=Strategic OSIRIS Intelligence Platform
       - OSIRIS_URL=${OSIRIS_URL:-http://localhost:3000}
-      - PYTHIA_URL=${PYTHIA_URL:-http://localhost:8088}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-osiris}:${POSTGRES_PASSWORD:-secret}@postgres:5432/${POSTGRES_DB:-strategic_osiris}
       - REDIS_URL=redis://redis:6379/0
     depends_on:

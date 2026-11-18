@@ -20,27 +20,23 @@ The platform is **not** a news aggregator. It is an **intelligence production sy
 
 ---
 
-## 2. Architecture Decision: Fork PYTHIA + Extend
+## 2. Architecture: Standalone Strategic OSIRIS + OSIRIS API
 
-Based on the design conversation's evaluation of multiple platforms:
+The platform operates as **Strategic OSIRIS** — a standalone intelligence fusion platform that connects directly to the OSIRIS API and knowledge layer without requiring Pythia as an intermediary.
 
-| Platform | Verdict |
-|----------|---------|
-| **PYTHIA** (github.com/jangles-byte/Pythia) | ✅ **Primary base** — already has multi-agent swarm, forecasting, OSINT, early warning, local AI via Ollama |
-| **OSIRIS** (github.com/simplifaisoul/osiris) | ✅ Included via PYTHIA (PYTHIA builds on OSIRIS for situational awareness) |
-| **ShadowBroker** (github.com/BigBodyCobain/Shadowbroker) | 🔍 Reference for OSINT automation patterns |
-| **WorldMonitor / Crucix** | 📚 Reference for ideas & supplementary data sources |
-| Palantir / Babel Street / Dataminr | 📖 Commercial benchmarks (not open-source) |
-
-**Decision:** Fork PYTHIA and develop **Strategic OSIRIS** — adding an Analyst Room module with 14 specialized AI agents, structured evidence management, and bilingual reporting.
+| Component | Role |
+|-----------|------|
+| **Strategic OSIRIS** | Multi-agent strategic intelligence engine with 14 specialized agents, Admiralty verification, and Analyst Room |
+| **OSIRIS** (github.com/simplifaisoul/osiris) | Direct OSINT data source and situational awareness API (`/api/events`, `/api/oi`, `/api/mcp`) |
+| **Pythia** | ❌ Not needed / removed (orchestration and swarming handled natively by Strategic OSIRIS) |
 
 ### Recommended Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | PYTHIA/OSIRIS existing UI (Next.js) + new Analyst Room module |
+| Frontend | OSIRIS / Standalone Web Dashboard + Analyst Room module |
 | Backend API | FastAPI + Pydantic |
-| Agent Orchestration | LangGraph (or native orchestration extending PYTHIA's swarm) |
+| Agent Orchestration | Native Multi-Agent Pipeline & LangGraph |
 | AI Models | LiteLLM + Ollama (local) + Cloud APIs (OpenAI/Claude/Gemini) |
 | Scheduling & Integration | n8n |
 | Task Queues | Redis + Celery |
@@ -183,7 +179,7 @@ Additional: `users`, `roles`, `workspaces`, `tasks`, `scenarios`, `subscriptions
 strategic-intelligence-platform/
 │
 ├── apps/
-│   ├── web/                 # Next.js Dashboard (extends PYTHIA/OSIRIS)
+│   ├── web/                 # Web Dashboard & Analyst Room
 │   └── api/                 # FastAPI backend
 │
 ├── services/
@@ -215,13 +211,13 @@ strategic-intelligence-platform/
 ## 7. Implementation Roadmap
 
 ### Phase 1 — Foundation (Weeks 1-2)
-- [ ] Fork PYTHIA repository
-- [ ] Repository inspection & architecture documentation
-- [ ] Set up Docker Compose with PostgreSQL, Redis, FastAPI
-- [ ] Design Agent Registry and Tool Registry interfaces
-- [ ] Define Pydantic data contracts (`EvidenceBundle`, `AnalystFinding`, `StrategicAssessment`, `WarningSignal`)
-- [ ] Set up LiteLLM + Ollama provider integration
-- [ ] Database migrations for core schema
+- [x] Standalone architecture implementation
+- [x] Repository setup & architecture documentation
+- [x] Set up Docker Compose with PostgreSQL, Redis, FastAPI
+- [x] Design Agent Registry and Tool Registry interfaces
+- [x] Define Pydantic data contracts (`EvidenceBundle`, `AnalystFinding`, `StrategicAssessment`, `WarningSignal`)
+- [x] Set up OpenRouter multi-model gateway
+- [x] Database schemas and automated test suite
 
 ### Phase 2 — Strategic Assessment MVP (Weeks 3-5)
 - [ ] Implement 7 initial agents:
@@ -347,7 +343,7 @@ Agents select appropriate techniques per task:
 | Agent hallucination | Mandatory citation requirement + Verification Agent + Red Team |
 | Echo chamber (agents agreeing without independent evidence) | Evidence traced to original independent sources; repetition ≠ corroboration |
 | API cost explosion | Token budgeting per agent, dynamic agent selection, local models for routine tasks |
-| PYTHIA upstream breaking changes | Isolate customizations in separate modules; maintain fork discipline |
+| OSIRIS upstream changes | Maintain clean separation of custom SIFP modules and schemas |
 | Prompt injection via external documents | Treat source content as data, never as instructions; sandbox agent tools |
 | Over-engineering before validation | MVP with 7 agents first; prove analytical quality before scaling |
 
@@ -368,7 +364,7 @@ Agents select appropriate techniques per task:
 
 - **VPS:** Docker Compose deployment on a single VPS. Need to provision a server with ≥16GB RAM, 4+ vCPUs, SSD storage. All services (PostgreSQL, Redis, FastAPI, Next.js, n8n) run containerized.
 - **OpenRouter:** Single API key routes to multiple models (Claude, GPT-4, Gemini, Llama, Mistral). Cost-efficient model selection per agent — heavier models for Chief Analyst & Red Team, lighter models for collection & verification. No local GPU required.
-- **OSIRIS API:** Use PYTHIA/OSIRIS's built-in data sources and APIs (`/agent/view`, `/agent/events`, `/predictions`, `/whatif`, `/brief`) as the knowledge layer. No separate Onyx deployment needed in MVP.
+- **OSIRIS API:** Connects directly to OSIRIS built-in data sources and APIs (`/api/events`, `/api/oi`, `/api/mcp`) as the primary knowledge layer. No intermediary engine needed.
 - **Egypt-Libya-Israel focus:** Agent prompts will default to Egyptian national interest perspective. Geographic focus on North Africa, Eastern Mediterranean, and Red Sea corridor.
 
 ---
