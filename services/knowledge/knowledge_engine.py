@@ -332,13 +332,13 @@ class KnowledgeEngine:
                     source_id=f"SRC-KB-{doc.id}",
                     source_name=f"Strategic Knowledge Base ({doc.category.upper()})",
                     title=doc.title_ar,
-                    url=None,
+                    url=next((source for source in doc.sources if source.startswith(("https://", "http://"))), None),
                     content_snippet=doc.summary + " " + doc.content[:280] + "...",
                     reliability=doc.reliability,
                     credibility=doc.credibility,
                     countries_mentioned=doc.country_coverage,
                     tags=["doctrine", doc.category] + [e[:20] for e in doc.key_entities[:3]],
-                    published_at=doc.created_at
+                    published_at=doc.published_at
                 )
             )
 

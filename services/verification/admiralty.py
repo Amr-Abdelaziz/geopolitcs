@@ -71,7 +71,7 @@ class ClaimVerifier:
 
     def extract_evidence_ids(self, text: str) -> List[str]:
         """Find all [EVD-xxx] references in the text."""
-        return list(set(re.findall(r"\[EVD-\d+\]", text)))
+        return list(dict.fromkeys(re.findall(r"\[EVD-[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*\]", text)))
 
     def verify_analyst_text(self, text: str) -> Tuple[bool, List[str], List[str]]:
         """Check whether the analyst's text properly cites existing evidence.

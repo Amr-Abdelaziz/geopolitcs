@@ -45,8 +45,8 @@ class StrategicPipeline:
         db: Optional[DatabaseManager] = None
     ):
         self.llm = llm_client or OpenRouterClient()
-        self.collector = collector or EvidenceCollector()
         self.db = db or DatabaseManager()
+        self.collector = collector or EvidenceCollector(db=self.db)
         self.assessments_store: Dict[str, StrategicAssessment] = {}
 
     async def execute_assessment(self, request: AssessmentRequest) -> StrategicAssessment:

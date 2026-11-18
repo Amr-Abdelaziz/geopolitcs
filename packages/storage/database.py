@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import aiosqlite
-from packages.schemas.models import StrategicAssessment
+from packages.schemas.models import DocumentEvidence, StrategicAssessment
 
 log = logging.getLogger("strategic_osiris.storage")
 
@@ -79,9 +79,55 @@ class DatabaseManager:
             """)
             await db.execute("CREATE INDEX IF NOT EXISTS idx_radar_ingested ON radar_events(ingested_at DESC);")
 
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS evidence (
+                    id TEXT PRIMARY KEY,
+                    data_json TEXT NOT NULL
+                );
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS evidence_versions (
+                    id TEXT NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    data_json TEXT NOT NULL,
+                    PRIMARY KEY (id, content_hash)
+                );
+            """)
+
             await db.commit()
             self._initialized = True
             log.info("Database initialized successfully at %s", self.db_path)
+
+    async def save_evidence(self, documents: List[DocumentEvidence]) -> List[DocumentEvidence]:
+        if not self._initialized:
+            await self.init_db()
+        saved = []
+        async with aiosqlite.connect(self.db_path) as db:
+            for doc in documents:
+                async with db.execute("SELECT data_json FROM evidence WHERE id = ?", (doc.id,)) as cursor:
+                    previous = await cursor.fetchone()
+                if previous:
+                    original = DocumentEvidence.model_validate_json(previous[0])
+                    doc = doc.model_copy(update={"ingested_at": original.ingested_at})
+                await db.execute(
+                    "INSERT OR IGNORE INTO evidence_versions VALUES (?, ?, ?)",
+                    (doc.id, doc.content_hash or "", doc.model_dump_json()),
+                )
+                await db.execute(
+                    "INSERT INTO evidence VALUES (?, ?) ON CONFLICT(id) "
+                    "DO UPDATE SET data_json=excluded.data_json",
+                    (doc.id, doc.model_dump_json()),
+                )
+                saved.append(doc)
+            await db.commit()
+        return saved
+
+    async def list_evidence(self) -> List[DocumentEvidence]:
+        if not self._initialized:
+            await self.init_db()
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute("SELECT data_json FROM evidence ORDER BY id") as cursor:
+                return [DocumentEvidence.model_validate_json(row[0]) for row in await cursor.fetchall()]
 
     async def save_assessment(self, assessment: StrategicAssessment) -> None:
         """Insert or update a StrategicAssessment record."""

@@ -6,10 +6,11 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 import httpx
-from packages.schemas.models import AdmiraltyCredibility, AdmiraltyReliability, DocumentEvidence, utc_now
+from packages.schemas.models import AdmiraltyCredibility, AdmiraltyReliability, DocumentEvidence
+from packages.storage.database import DatabaseManager
+from services.collection.evidence_metadata import canonical_url, content_hash, evidence_id, publication_date
 from services.collection.web_search import WebSearchClient
 from services.knowledge.knowledge_engine import KnowledgeEngine, knowledge_engine
 
@@ -126,25 +127,31 @@ class EvidenceCollector:
         self,
         osiris_client: Optional[OsirisClient] = None,
         web_search_client: Optional[WebSearchClient] = None,
-        knowledge_engine_inst: Optional[KnowledgeEngine] = None
+        knowledge_engine_inst: Optional[KnowledgeEngine] = None,
+        db: Optional[DatabaseManager] = None,
+        demo_mode: Optional[bool] = None,
     ):
         self.client = osiris_client or OsirisClient()
         self.web_search = web_search_client or WebSearchClient()
         self.knowledge = knowledge_engine_inst or knowledge_engine
+        self.db = db or DatabaseManager()
+        self.demo_mode = demo_mode if demo_mode is not None else os.getenv("DEMO_EVIDENCE", "0") == "1"
         self.store: Dict[str, DocumentEvidence] = {}
         # Preload baseline
-        for item in DEFAULT_EVIDENCES:
+        for item in DEFAULT_EVIDENCES if self.demo_mode else []:
             doc = DocumentEvidence(
                 id=item["id"],
                 source_id="SRC-DEF",
-                source_name=item["source_name"],
+                source_name=f"DEMO / {item['source_name']}",
                 title=item["title"],
                 content_snippet=item["snippet"],
-                reliability=item["reliability"],
-                credibility=item["credibility"],
+                reliability=AdmiraltyReliability.F,
+                credibility=AdmiraltyCredibility.SIX,
                 countries_mentioned=item["countries"],
-                tags=item["tags"],
-                published_at=datetime.now(timezone.utc) - timedelta(hours=6)
+                tags=item["tags"] + ["demo"],
+                is_demo=True,
+                published_at=None,
+                content_hash=content_hash(item["title"], item["snippet"]),
             )
             self.store[doc.id] = doc
 
@@ -154,12 +161,14 @@ class EvidenceCollector:
         target_countries: List[str]
     ) -> List[DocumentEvidence]:
         """Collect and filter evidence from live OSIRIS feeds, real-time web search, and strategic defense baselines."""
+        await self.load_evidence()
         # 0. Ingest verified strategic doctrine & chokepoint treaties from Knowledge Base
         kb_docs = self.knowledge.search_as_evidence(
             query=research_question,
             target_countries=target_countries,
             limit=4
         )
+        collected = list(kb_docs)
         for kdoc in kb_docs:
             self.store[kdoc.id] = kdoc
         if kb_docs:
@@ -167,12 +176,12 @@ class EvidenceCollector:
 
         # 1. Fetch live news items from OSIRIS
         osiris_news = await self.client.fetch_news(limit=40)
-        for idx, item in enumerate(osiris_news):
-            doc_id = f"EVD-OSI-{idx+1:03d}"
-            title = item.get("title", "")
-            snippet = item.get("summary") or item.get("description", "")
+        for item in osiris_news:
+            title = item.get("title") or ""
+            snippet = item.get("summary") or item.get("description") or ""
             source_name = f"OSIRIS / {item.get('source_name', 'Live Feed')}"
-            link = item.get("link")
+            link = canonical_url(item.get("link") or item.get("url"))
+            doc_id = evidence_id("OSI", link, str(item.get("id") or f"{source_name}:{title}"))
             
             # Extract mentioned countries safely
             coords_str = str(item.get("coords_anchor") or "")
@@ -193,11 +202,11 @@ class EvidenceCollector:
             if not detected_countries:
                 detected_countries.append("Regional")
 
-            tags = item.get("risk_keywords", []) + [item.get("alert_kind", "osint")]
+            tags = (item.get("risk_keywords") or []) + [item.get("alert_kind") or "osint"]
 
             doc = DocumentEvidence(
                 id=doc_id,
-                source_id=f"OSIRIS-{item.get('id', idx)[:8]}",
+                source_id=f"OSIRIS-{str(item.get('id') or doc_id)}",
                 source_name=source_name,
                 title=title,
                 url=link,
@@ -206,9 +215,11 @@ class EvidenceCollector:
                 credibility=AdmiraltyCredibility.TWO,
                 countries_mentioned=detected_countries,
                 tags=tags,
-                published_at=datetime.now(timezone.utc)
+                published_at=publication_date(item.get("published_at") or item.get("published") or item.get("date")),
+                content_hash=content_hash(title, snippet[:400]),
             )
             self.store[doc.id] = doc
+            collected.append(doc)
 
         # 2. Execute live open-source web search on the research topic
         search_query = " ".join(research_question.split()[:10])
@@ -220,26 +231,42 @@ class EvidenceCollector:
             )
             for wdoc in web_docs:
                 self.store[wdoc.id] = wdoc
+            collected.extend(web_docs)
             if web_docs:
                 log.info("Ingested %d live web search evidence items for query '%s'", len(web_docs), search_query)
         except Exception as e:
             log.warning("Live web search collection failed gracefully: %s", e)
 
+        saved = await self.db.save_evidence([self._prepare(doc) for doc in collected if not doc.is_demo])
+        self.store.update({doc.id: doc for doc in saved})
+
         # 3. Filter store by relevance to target countries
         country_set = {c.lower() for c in target_countries}
-        results = list(self.store.values())
+        results = self.get_all()
         relevant = [
             doc for doc in results
-            if any(c.lower() in country_set for c in doc.countries_mentioned)
+            if not country_set or any(c.lower() in country_set for c in doc.countries_mentioned)
         ]
         
-        # Always return at least 5 rich evidence items
-        if len(relevant) < 5:
-            return results[:12]
         return relevant[:18]
 
-    def add_evidence(self, doc: DocumentEvidence) -> None:
+    def _prepare(self, doc: DocumentEvidence) -> DocumentEvidence:
+        return doc.model_copy(update={
+            "url": canonical_url(doc.url),
+            "content_hash": content_hash(doc.title, doc.content_snippet),
+        })
+
+    async def load_evidence(self) -> None:
+        for doc in await self.db.list_evidence():
+            if not doc.is_demo:
+                self.store[doc.id] = doc
+
+    async def add_evidence(self, doc: DocumentEvidence) -> DocumentEvidence:
+        doc = self._prepare(doc)
+        if not doc.is_demo:
+            doc, = await self.db.save_evidence([doc])
         self.store[doc.id] = doc
+        return doc
 
     def get_all(self) -> List[DocumentEvidence]:
-        return list(self.store.values())
+        return [doc for doc in self.store.values() if self.demo_mode or not doc.is_demo]

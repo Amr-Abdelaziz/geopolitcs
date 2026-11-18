@@ -111,6 +111,7 @@ class DocumentEvidence(BaseModel):
     countries_mentioned: List[str] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list)
     content_hash: Optional[str] = None
+    is_demo: bool = False
 
 
 class Claim(BaseModel):
@@ -349,6 +350,7 @@ class KnowledgeDocument(BaseModel):
     key_entities: List[str] = Field(default_factory=list)
     sources: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=utc_now)
+    published_at: Optional[datetime] = None
 
 
 class KnowledgeSearchRequest(BaseModel):

@@ -7,16 +7,14 @@ Converts raw web results into standardized Admiralty-scored DocumentEvidence ite
 from __future__ import annotations
 
 import asyncio
-import email.utils
-import hashlib
 import logging
 import re
 import urllib.parse
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import httpx
 from packages.schemas.models import AdmiraltyCredibility, AdmiraltyReliability, DocumentEvidence
+from services.collection.evidence_metadata import canonical_url, content_hash, evidence_id, publication_date
 
 log = logging.getLogger("strategic_osiris.web_search")
 
@@ -68,21 +66,14 @@ class WebSearchClient:
                         source = parts[1].strip()
 
                     # Parse pub date
-                    dt = datetime.now(timezone.utc)
-                    if pub_str:
-                        try:
-                            parsed_tuple = email.utils.parsedate_to_datetime(pub_str)
-                            if parsed_tuple:
-                                dt = parsed_tuple
-                        except Exception:
-                            pass
+                    dt = publication_date(pub_str)
 
                     results.append({
                         "title": clean_title,
                         "source": source,
                         "url": link,
                         "body": clean_desc or clean_title,
-                        "date": dt.isoformat(),
+                        "date": dt.isoformat() if dt else None,
                         "datetime": dt
                     })
         except Exception as e:
@@ -103,7 +94,7 @@ class WebSearchClient:
                         "url": r.get("href", ""),
                         "body": r.get("body", ""),
                         "date": "",
-                        "datetime": datetime.now(timezone.utc)
+                        "datetime": None
                     })
                 return results
         except Exception:
@@ -147,17 +138,17 @@ class WebSearchClient:
         target_countries: Optional[List[str]] = None,
         max_results: int = 5
     ) -> List[DocumentEvidence]:
-        """Search the web and convert results into verified DocumentEvidence objects."""
+        """Search the web and convert results into unverified evidence records."""
         raw_items = await self.search(query, max_results=max_results)
         evidences: List[DocumentEvidence] = []
         target_countries = target_countries or ["Egypt", "Libya", "Israel"]
 
-        for idx, item in enumerate(raw_items):
+        for item in raw_items:
             title = item.get("title", "").strip()
             body = item.get("body", "").strip()
-            url = item.get("url", "").strip()
+            url = canonical_url(item.get("url"))
             source_name = item.get("source", "Open Media")
-            dt = item.get("datetime") or datetime.now(timezone.utc)
+            dt = publication_date(item.get("datetime") or item.get("date"))
 
             if not title:
                 continue
@@ -177,12 +168,11 @@ class WebSearchClient:
                 detected = ["Regional"]
 
             # Generate stable ID hash
-            h = hashlib.md5(f"{title}:{url}".encode("utf-8")).hexdigest()[:6]
-            doc_id = f"EVD-WEB-{h.upper()}"
+            doc_id = evidence_id("WEB", url, f"{source_name}:{title}")
 
             doc = DocumentEvidence(
                 id=doc_id,
-                source_id=f"SRC-WEB-{h.upper()}",
+                source_id=doc_id.replace("EVD-", "SRC-", 1),
                 source_name=f"Live Media / {source_name}",
                 title=title,
                 url=url,
@@ -191,7 +181,8 @@ class WebSearchClient:
                 credibility=AdmiraltyCredibility.TWO,  # 2: Probably True
                 countries_mentioned=detected,
                 tags=["live_web_search", "osint"],
-                published_at=dt
+                published_at=dt,
+                content_hash=content_hash(title, body[:450] if body else title),
             )
             evidences.append(doc)
 

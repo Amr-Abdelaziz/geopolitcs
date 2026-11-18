@@ -311,13 +311,13 @@ async def search_live_web(
 
 @app.get("/api/evidence", response_model=List[DocumentEvidence])
 async def list_evidence() -> List[DocumentEvidence]:
+    await pipeline.collector.load_evidence()
     return pipeline.collector.get_all()
 
 
 @app.post("/api/evidence", response_model=DocumentEvidence)
 async def add_evidence(doc: DocumentEvidence) -> DocumentEvidence:
-    pipeline.collector.add_evidence(doc)
-    return doc
+    return await pipeline.collector.add_evidence(doc)
 
 
 # --- Indicators and Early Warning ---
