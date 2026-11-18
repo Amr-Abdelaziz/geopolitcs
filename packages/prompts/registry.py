@@ -203,7 +203,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Chief Strategic Analyst",
         role_description_ar="تخطيط المهام، توزيع محاور البحث، دمج التقديرات وصياغة الأحكام والتوصيات النهائية",
         role_description_en="Supervises analytical planning, task allocation, multi-domain synthesis, and strategic judgments",
-        default_model="anthropic/claude-3.5-sonnet",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.3,
         assigned_tools=["plan_tasks", "synthesize_findings", "review_critique"]
     ),
@@ -213,7 +213,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="OSINT Collector",
         role_description_ar="جمع الأخبار والوقائع من المصادر المفتوحة وبيانات OSIRIS وإعداد التسلسل الزمني",
         role_description_en="Retrieves public facts and events from OSIRIS and open feeds, creating verified timelines",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.1,
         assigned_tools=["search_news", "osiris_events", "get_feed"]
     ),
@@ -223,7 +223,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Verification Agent",
         role_description_ar="تطبيق كود Admiralty، تدقيق موثوقية المصادر ومصداقية المعلومات واكتشاف التناقضات",
         role_description_en="Applies Admiralty Code, evaluates source reliability and claim credibility, detects contradictions",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.1,
         assigned_tools=["admiralty_evaluate", "verify_claim", "detect_contradictions"]
     ),
@@ -233,7 +233,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Military Analyst",
         role_description_ar="تحليل القدرات العسكرية، الصفقات، التموضع الميداني، وموازين القوى في مسرح العمليات",
         role_description_en="Assesses military capabilities, defense procurement, field posture, and balance of power",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.2,
         assigned_tools=["analyze_military_balance", "procurement_lookup"]
     ),
@@ -243,7 +243,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Political Analyst",
         role_description_ar="تحليل التطورات الدبلوماسية، استقرار القيادة السياسية والتحالفات الدولية",
         role_description_en="Analyzes political leadership, diplomatic maneuvering, and alliance dynamics",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.3,
         assigned_tools=["analyze_politics", "actor_mapping"]
     ),
@@ -253,7 +253,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Economic Analyst",
         role_description_ar="تحليل خطوط الطاقة، الممرات الملاحية، العقوبات، وتكلفة البرامج العسكرية",
         role_description_en="Evaluates energy corridors, maritime security costs, sanctions, and defense budgets",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.2,
         assigned_tools=["economic_indicators", "energy_flows"]
     ),
@@ -263,7 +263,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Geopolitical Analyst",
         role_description_ar="تحليل التنافس الدولي في شرق المتوسط والبحر الأحمر والمصالح الاستراتيجية",
         role_description_en="Assesses great power competition and regional security architecture",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.3,
         assigned_tools=["geopolitical_map", "strategic_corridors"]
     ),
@@ -273,7 +273,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Defense Technology Analyst",
         role_description_ar="تقييم المنظومات الحديثة، نقل التكنولوجيا، المسيرات، وأنظمة الرادار والفضاء",
         role_description_en="Examines advanced military technology, defense manufacturing, UAVs, and radar systems",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.2,
         assigned_tools=["tech_evaluation", "supply_chain_check"]
     ),
@@ -283,7 +283,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="GEOINT Analyst",
         role_description_ar="تحليل التضاريس، خطوط الإمداد، الموانئ الحيوية والمضائق الجغرافية",
         role_description_en="Analyzes geographic chokepoints, terrain, maritime ports, and critical lines of communication",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.1,
         assigned_tools=["geographic_chokepoints", "port_traffic"]
     ),
@@ -293,7 +293,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Country Intelligence Analyst",
         role_description_ar="تحديث ملفات الدول (مصر، ليبيا، إسرائيل) وإجراء تحليلات SWOT المقارنة",
         role_description_en="Maintains country profiles (Egypt, Libya, Israel) and conducts comparative SWOT analyses",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.2,
         assigned_tools=["country_profile_lookup", "swot_builder"]
     ),
@@ -303,7 +303,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Forecast Analyst",
         role_description_ar="بناء السيناريوهات الأربعة وتحديد مؤشرات التحقق وربطها بمحرك OI Forecast",
         role_description_en="Develops 4 alternative scenarios with trigger indicators and OI forecast alignment",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.6,
         assigned_tools=["generate_scenarios", "oi_forecast_query"]
     ),
@@ -313,7 +313,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Early Warning Analyst",
         role_description_ar="رصد مؤشرات التصعيد ومقارنة التغيرات بخط الأساس التاريخي وإطلاق التنبيهات",
         role_description_en="Tracks indicators, evaluates baseline anomalies, and issues threshold-based alerts",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.1,
         assigned_tools=["check_thresholds", "issue_alert"]
     ),
@@ -323,7 +323,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Red Team Analyst",
         role_description_ar="المراجعة النقدية المستقلة، كشف الادعاءات غير المدعومة، وفحص الافتراضات",
         role_description_en="Conducts independent critical audit, exposes unsubstantiated claims, and tests hypotheses",
-        default_model="anthropic/claude-3.5-sonnet",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.5,
         assigned_tools=["audit_claims", "competing_hypotheses", "devils_advocacy"]
     ),
@@ -333,7 +333,7 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
         name_en="Strategic Report Agent",
         role_description_ar="صياغة المخرجات النهائية بأسلوب دبلوماسي وعسكري احترافي ثنائي اللغة (عربي/إنجليزي)",
         role_description_en="Generates formal bilingual (Arabic & English) strategic assessments and daily briefs",
-        default_model="meta-llama/llama-3.3-70b-instruct",
+        default_model="anthropic/claude-haiku-5.5",
         temperature=0.2,
         assigned_tools=["format_report", "translate_brief", "export_markdown"]
     ),

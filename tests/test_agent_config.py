@@ -28,7 +28,7 @@ def test_modify_agent_model_and_temperature(tmp_path):
 
     # 2. Reset back
     reset = mgr.reset_agent(AgentID.A04_MILITARY)
-    assert reset.default_model == "meta-llama/llama-3.3-70b-instruct"
+    assert reset.default_model == "anthropic/claude-haiku-5.5"
     assert reset.is_customized is False
 
 
@@ -86,19 +86,20 @@ async def test_api_modify_and_reset_agent_lifecycle():
         models_res = await client.get("/api/agents/models")
         assert models_res.status_code == 200
         models = models_res.json()
+        assert "anthropic/claude-haiku-5.5" in models
         assert "anthropic/claude-3.5-sonnet" in models
         assert "openai/gpt-4o" in models
 
         # 2. Modify A04 Military via PUT
         payload = {
-            "default_model": "anthropic/claude-3.5-sonnet",
+            "default_model": "openai/gpt-4o",
             "temperature": 0.45,
             "system_prompt": "تعليمات اختبارية للوكيل العسكري عبر الـ API"
         }
         put_res = await client.put("/api/agents/A04", json=payload)
         assert put_res.status_code == 200
         data = put_res.json()
-        assert data["metadata"]["default_model"] == "anthropic/claude-3.5-sonnet"
+        assert data["metadata"]["default_model"] == "openai/gpt-4o"
         assert data["metadata"]["temperature"] == 0.45
         assert data["is_customized"] is True
         assert "تعليمات اختبارية" in data["system_prompt"]
@@ -106,11 +107,11 @@ async def test_api_modify_and_reset_agent_lifecycle():
         # 3. GET check
         get_res = await client.get("/api/agents/A04")
         assert get_res.status_code == 200
-        assert get_res.json()["metadata"]["default_model"] == "anthropic/claude-3.5-sonnet"
+        assert get_res.json()["metadata"]["default_model"] == "openai/gpt-4o"
 
         # 4. Reset A04 back to default
         reset_res = await client.post("/api/agents/A04/reset")
         assert reset_res.status_code == 200
         reset_data = reset_res.json()
-        assert reset_data["metadata"]["default_model"] == "meta-llama/llama-3.3-70b-instruct"
+        assert reset_data["metadata"]["default_model"] == "anthropic/claude-haiku-5.5"
         assert reset_data["is_customized"] is False

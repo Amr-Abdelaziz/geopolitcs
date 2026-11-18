@@ -157,6 +157,7 @@ class AgentDetailResponse(BaseModel):
 
 
 RECOMMENDED_MODELS: List[str] = [
+    "anthropic/claude-haiku-5.5",
     "anthropic/claude-3.5-sonnet",
     "meta-llama/llama-3.3-70b-instruct",
     "openai/gpt-4o",

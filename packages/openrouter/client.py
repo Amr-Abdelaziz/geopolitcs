@@ -28,20 +28,20 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Default Model Routing according to agent tier
 DEFAULT_TIER_MODELS: Dict[AgentID, str] = {
-    AgentID.A01_CHIEF_STRATEGIST: "anthropic/claude-3.5-sonnet",
-    AgentID.A02_OSINT_COLLECTOR: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A03_VERIFICATION: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A04_MILITARY: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A05_POLITICAL: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A06_ECONOMIC: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A07_GEOPOLITICAL: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A08_DEFENSE_TECH: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A09_GEOINT: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A10_COUNTRY_INTEL: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A11_FORECAST: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A12_EARLY_WARNING: "meta-llama/llama-3.3-70b-instruct",
-    AgentID.A13_RED_TEAM: "anthropic/claude-3.5-sonnet",
-    AgentID.A14_REPORT: "meta-llama/llama-3.3-70b-instruct",
+    AgentID.A01_CHIEF_STRATEGIST: "anthropic/claude-haiku-5.5",
+    AgentID.A02_OSINT_COLLECTOR: "anthropic/claude-haiku-5.5",
+    AgentID.A03_VERIFICATION: "anthropic/claude-haiku-5.5",
+    AgentID.A04_MILITARY: "anthropic/claude-haiku-5.5",
+    AgentID.A05_POLITICAL: "anthropic/claude-haiku-5.5",
+    AgentID.A06_ECONOMIC: "anthropic/claude-haiku-5.5",
+    AgentID.A07_GEOPOLITICAL: "anthropic/claude-haiku-5.5",
+    AgentID.A08_DEFENSE_TECH: "anthropic/claude-haiku-5.5",
+    AgentID.A09_GEOINT: "anthropic/claude-haiku-5.5",
+    AgentID.A10_COUNTRY_INTEL: "anthropic/claude-haiku-5.5",
+    AgentID.A11_FORECAST: "anthropic/claude-haiku-5.5",
+    AgentID.A12_EARLY_WARNING: "anthropic/claude-haiku-5.5",
+    AgentID.A13_RED_TEAM: "anthropic/claude-haiku-5.5",
+    AgentID.A14_REPORT: "anthropic/claude-haiku-5.5",
 }
 
 
@@ -66,12 +66,12 @@ class OpenRouterClient:
                 return agent_def.default_model
         except Exception:
             pass
-        return DEFAULT_TIER_MODELS.get(agent_id, "meta-llama/llama-3.3-70b-instruct")
+        return DEFAULT_TIER_MODELS.get(agent_id, "anthropic/claude-haiku-5.5")
 
     async def complete(
         self,
         messages: List[Dict[str, str]],
-        model: str = "meta-llama/llama-3.3-70b-instruct",
+        model: str = "anthropic/claude-haiku-5.5",
         temperature: float = 0.2,
         max_tokens: int = 2500,
         agent_id: Optional[AgentID] = None,
