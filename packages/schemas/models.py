@@ -135,6 +135,39 @@ class AgentDefinition(BaseModel):
     temperature: float = 0.2
     is_active: bool = True
     assigned_tools: List[str] = Field(default_factory=list)
+    is_customized: bool = False
+
+
+class AgentUpdateRequest(BaseModel):
+    default_model: Optional[str] = None
+    temperature: Optional[float] = Field(default=None, ge=0.0, le=2.0)
+    system_prompt: Optional[str] = None
+    role_description_ar: Optional[str] = None
+    role_description_en: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class AgentDetailResponse(BaseModel):
+    metadata: AgentDefinition
+    system_prompt: str
+    default_system_prompt: str
+    is_customized: bool
+    system_prompt_sample: str
+    available_models: List[str] = Field(default_factory=list)
+
+
+RECOMMENDED_MODELS: List[str] = [
+    "anthropic/claude-3.5-sonnet",
+    "meta-llama/llama-3.3-70b-instruct",
+    "openai/gpt-4o",
+    "openai/gpt-4o-mini",
+    "google/gemini-2.0-flash-001",
+    "google/gemini-2.5-flash",
+    "deepseek/deepseek-chat",
+    "deepseek/deepseek-r1",
+    "qwen/qwen-2.5-72b-instruct",
+    "mistralai/mistral-large-2411"
+]
 
 
 class AnalystFinding(BaseModel):

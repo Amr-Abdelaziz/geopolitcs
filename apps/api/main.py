@@ -13,13 +13,20 @@ from fastapi import FastAPI, HTTPException, Query, Response
 load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, PlainTextResponse
-from packages.prompts.registry import AGENT_REGISTRY, build_system_prompt
+from packages.prompts.registry import (
+    AGENT_REGISTRY,
+    agent_config_manager,
+    build_system_prompt,
+)
 from packages.schemas.models import (
     AgentDefinition,
+    AgentDetailResponse,
     AgentID,
+    AgentUpdateRequest,
     ApprovalAction,
     AssessmentRequest,
     DocumentEvidence,
+    RECOMMENDED_MODELS,
     StrategicAssessment,
 )
 from services.orchestrator.pipeline import StrategicPipeline
@@ -46,39 +53,124 @@ indicator_engine = IndicatorEngine()
 
 @app.get("/api/health")
 async def health_check() -> Dict[str, Any]:
+    osiris_health = await pipeline.collector.client.check_health()
     return {
         "status": "online",
         "service": "Strategic OSIRIS Intelligence Fusion Platform",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "agents_count": len(AGENT_REGISTRY),
         "llm_mode": "mock_fallback" if pipeline.llm.mock_mode else "openrouter_live",
-        "target_countries": ["Egypt", "Libya", "Israel"]
+        "target_countries": ["Egypt", "Libya", "Israel"],
+        "osiris_upstream": osiris_health
     }
 
 
-# --- Agent Management ---
+@app.get("/api/osiris/status")
+async def osiris_status() -> Dict[str, Any]:
+    health = await pipeline.collector.client.check_health()
+    sample_news = await pipeline.collector.client.fetch_news(limit=5)
+    return {
+        "health": health,
+        "sample_live_news_count": len(sample_news),
+        "latest_headline": sample_news[0].get("title") if sample_news else None,
+        "sample_items": [
+            {
+                "id": n.get("id"),
+                "source": n.get("source_name"),
+                "title": n.get("title"),
+                "published": n.get("published"),
+                "risk_score": n.get("risk_score")
+            }
+            for n in sample_news[:3]
+        ]
+    }
+
+
+
+# --- Agent Management & Customization ---
 
 @app.get("/api/agents", response_model=List[AgentDefinition])
 async def list_agents() -> List[AgentDefinition]:
-    return list(AGENT_REGISTRY.values())
+    return agent_config_manager.list_agents()
 
 
-@app.get("/api/agents/{agent_id}")
-async def get_agent(agent_id: str) -> Dict[str, Any]:
+@app.get("/api/agents/models", response_model=List[str])
+async def list_recommended_models() -> List[str]:
+    return RECOMMENDED_MODELS
+
+
+@app.get("/api/agents/{agent_id}", response_model=AgentDetailResponse)
+async def get_agent(agent_id: str) -> AgentDetailResponse:
     try:
         aid = AgentID(agent_id.upper())
     except ValueError:
         raise HTTPException(status_code=404, detail="Agent ID not found")
     
-    agent_def = AGENT_REGISTRY.get(aid)
+    agent_def = agent_config_manager.get_agent(aid)
     if not agent_def:
         raise HTTPException(status_code=404, detail="Agent definition not found")
     
+    current_prompt = agent_config_manager.get_prompt(aid)
+    default_prompt = agent_config_manager.get_default_prompt(aid)
     sample_prompt = build_system_prompt(aid, "سؤال استراتيجي اختباري")
-    return {
-        "metadata": agent_def.model_dump(),
-        "system_prompt_sample": sample_prompt
-    }
+    return AgentDetailResponse(
+        metadata=agent_def,
+        system_prompt=current_prompt,
+        default_system_prompt=default_prompt,
+        is_customized=agent_def.is_customized,
+        system_prompt_sample=sample_prompt,
+        available_models=RECOMMENDED_MODELS
+    )
+
+
+@app.put("/api/agents/{agent_id}", response_model=AgentDetailResponse)
+async def update_agent(agent_id: str, update: AgentUpdateRequest) -> AgentDetailResponse:
+    try:
+        aid = AgentID(agent_id.upper())
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Agent ID not found")
+    
+    if aid not in agent_config_manager.agents:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    agent_def = agent_config_manager.update_agent(aid, update)
+    current_prompt = agent_config_manager.get_prompt(aid)
+    default_prompt = agent_config_manager.get_default_prompt(aid)
+    sample_prompt = build_system_prompt(aid, "سؤال استراتيجي اختباري")
+    return AgentDetailResponse(
+        metadata=agent_def,
+        system_prompt=current_prompt,
+        default_system_prompt=default_prompt,
+        is_customized=agent_def.is_customized,
+        system_prompt_sample=sample_prompt,
+        available_models=RECOMMENDED_MODELS
+    )
+
+
+@app.post("/api/agents/{agent_id}/reset", response_model=AgentDetailResponse)
+async def reset_agent(agent_id: str) -> AgentDetailResponse:
+    try:
+        aid = AgentID(agent_id.upper())
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Agent ID not found")
+    
+    agent_def = agent_config_manager.reset_agent(aid)
+    current_prompt = agent_config_manager.get_prompt(aid)
+    default_prompt = agent_config_manager.get_default_prompt(aid)
+    sample_prompt = build_system_prompt(aid, "سؤال استراتيجي اختباري")
+    return AgentDetailResponse(
+        metadata=agent_def,
+        system_prompt=current_prompt,
+        default_system_prompt=default_prompt,
+        is_customized=False,
+        system_prompt_sample=sample_prompt,
+        available_models=RECOMMENDED_MODELS
+    )
+
+
+@app.post("/api/agents/reset-all", response_model=List[AgentDefinition])
+async def reset_all_agents() -> List[AgentDefinition]:
+    return agent_config_manager.reset_all()
 
 
 # --- Assessment Pipeline ---

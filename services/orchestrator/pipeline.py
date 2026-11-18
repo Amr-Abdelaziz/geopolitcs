@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from packages.openrouter.client import OpenRouterClient
-from packages.prompts.registry import AGENT_REGISTRY, build_system_prompt
+from packages.prompts.registry import AGENT_REGISTRY, build_system_prompt, agent_config_manager
 from packages.schemas.models import (
     AgentID,
     AnalystFinding,
@@ -129,10 +129,12 @@ class StrategicPipeline:
             }
         ]
 
+        chief_def = agent_config_manager.get_agent(AgentID.A01_CHIEF_STRATEGIST)
+        chief_temp = chief_def.temperature if chief_def else 0.3
         chief_raw = await self.llm.complete(
             chief_messages,
             model=self.llm.get_model_for_agent(AgentID.A01_CHIEF_STRATEGIST, request.model_override),
-            temperature=0.3,
+            temperature=chief_temp,
             agent_id=AgentID.A01_CHIEF_STRATEGIST,
             context_hint=request.research_question
         )
@@ -209,10 +211,12 @@ class StrategicPipeline:
             }
         ]
 
+        red_def = agent_config_manager.get_agent(AgentID.A13_RED_TEAM)
+        red_temp = red_def.temperature if red_def else 0.5
         red_raw = await self.llm.complete(
             red_team_messages,
             model=self.llm.get_model_for_agent(AgentID.A13_RED_TEAM, request.model_override),
-            temperature=0.5,
+            temperature=red_temp,
             agent_id=AgentID.A13_RED_TEAM,
             context_hint=request.research_question
         )

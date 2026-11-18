@@ -79,8 +79,11 @@
 
     <!-- Right Controls -->
     <div class="flex items-center gap-3">
+      <div id="osiris-status-pill" class="text-xs font-mono px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
+        OSIRIS: Connecting...
+      </div>
       <div id="llm-status-pill" class="text-xs font-mono px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300">
-        OpenRouter: Fallback Mode
+        OpenRouter: Connecting...
       </div>
       <button onclick="toggleLang()" class="px-2.5 py-1 text-xs font-bold rounded bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200">
         EN / عربي
@@ -377,14 +380,111 @@
 
     <!-- TAB 4: AGENTS ROSTER -->
     <section id="tab-agents-roster" class="hidden space-y-6">
-      <div>
-        <h2 class="text-base font-bold text-white">خلية الوكلاء الأربعة عشر (The 14 Specialized Intelligence Agents)</h2>
-        <p class="text-xs text-gray-400">هيكل الفريق الاستخباري المتكامل مع محركات النماذج عبر OpenRouter</p>
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-white">خلية الوكلاء الأربعة عشر (The 14 Specialized Intelligence Agents)</h2>
+          <p class="text-xs text-gray-400">تعديل وتخصيص نماذج الذكاء الاصطناعي (OpenRouter Models) والتعليمات التوجيهية (System Prompts) لكل وكيل استخباراتي</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="agents-custom-count" class="text-xs px-2.5 py-1 rounded bg-gray-900 border border-gray-800 text-amber-400 font-mono">0 مخصص</span>
+          <button onclick="resetAllAgents()" class="px-3 py-1.5 rounded bg-gray-900 hover:bg-rose-950/60 border border-gray-800 hover:border-rose-700 text-xs text-gray-300 hover:text-rose-300 transition">
+            🔄 استعادة ضبط المصنع للجميع
+          </button>
+        </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="agents-grid-container">
         <!-- Injected via JS -->
       </div>
     </section>
+
+    <!-- Agent Edit Modal -->
+    <div id="agent-edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div class="glass-panel w-full max-w-3xl rounded-2xl border border-gray-700 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-start border-b border-gray-800 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span id="modal-agent-id" class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">A01</span>
+              <h3 id="modal-agent-name-ar" class="text-base font-bold text-white">رئيس خلية التحليل الاستراتيجي</h3>
+            </div>
+            <span id="modal-agent-name-en" class="text-xs text-gray-400 block mt-0.5">Chief Strategic Analyst</span>
+          </div>
+          <button onclick="closeAgentModal()" class="text-gray-400 hover:text-white text-xl font-bold p-1 leading-none">&times;</button>
+        </div>
+
+        <!-- Form Grid -->
+        <div class="space-y-4 text-xs">
+          <!-- Model Selection -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-gray-300 font-semibold mb-1">نموذج الذكاء الاصطناعي (OpenRouter Model)</label>
+              <select id="modal-select-model" onchange="onModelPresetChange(this.value)" class="w-full bg-gray-950 border border-gray-800 rounded p-2 text-gray-200 font-mono text-xs focus:border-emerald-500">
+                <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (anthropic/claude-3.5-sonnet)</option>
+                <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B Instruct (meta-llama/llama-3.3-70b-instruct)</option>
+                <option value="openai/gpt-4o">GPT-4o (openai/gpt-4o)</option>
+                <option value="openai/gpt-4o-mini">GPT-4o Mini (openai/gpt-4o-mini)</option>
+                <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (google/gemini-2.0-flash-001)</option>
+                <option value="google/gemini-2.5-flash">Gemini 2.5 Flash (google/gemini-2.5-flash)</option>
+                <option value="deepseek/deepseek-chat">DeepSeek V3 (deepseek/deepseek-chat)</option>
+                <option value="deepseek/deepseek-r1">DeepSeek R1 (deepseek/deepseek-r1)</option>
+                <option value="qwen/qwen-2.5-72b-instruct">Qwen 2.5 72B Instruct (qwen/qwen-2.5-72b-instruct)</option>
+                <option value="mistralai/mistral-large-2411">Mistral Large (mistralai/mistral-large-2411)</option>
+                <option value="__CUSTOM__">✍️ إدخال نموذج مخصص آخر (Custom Model ID)...</option>
+              </select>
+              <input id="modal-custom-model" type="text" placeholder="اكتب معرف النموذج في OpenRouter (e.g. cohere/command-r-plus)" class="w-full mt-2 bg-gray-950 border border-gray-800 rounded p-2 text-gray-200 font-mono text-xs focus:border-emerald-500">
+            </div>
+
+            <div>
+              <label class="block text-gray-300 font-semibold mb-1">درجة الحرارة (Temperature): <span id="modal-temp-val" class="font-mono text-emerald-400">0.2</span></label>
+              <input id="modal-temperature" type="range" min="0.0" max="1.5" step="0.05" value="0.2" oninput="document.getElementById('modal-temp-val').textContent = this.value" class="w-full mt-2 accent-emerald-500 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-gray-500 mt-1">
+                <span>0.0 (دقيق وحتمي)</span>
+                <span>1.5 (إبداعي)</span>
+              </div>
+
+              <div class="mt-4 flex items-center gap-2">
+                <input id="modal-is-active" type="checkbox" class="accent-emerald-500 rounded cursor-pointer">
+                <label for="modal-is-active" class="text-gray-300 cursor-pointer font-medium">الوكيل نشط في مسار التقدير</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prompt Editor -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-gray-300 font-semibold">تعليمات الوكيل التخصصية (Specialized System Prompt)</label>
+              <span id="modal-custom-badge" class="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400">افتراضي</span>
+            </div>
+            <textarea id="modal-system-prompt" rows="11" dir="rtl" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-xs text-gray-100 font-sans leading-relaxed focus:outline-none focus:border-emerald-500"></textarea>
+            <div class="mt-1.5 p-2 bg-gray-900/60 rounded border border-gray-800/80 text-[11px] text-gray-400 space-y-1">
+              <div class="font-bold text-gray-300">متغيرات السياق المتاحة للحقن التلقائي في البرومبت:</div>
+              <div class="flex flex-wrap gap-1 font-mono text-[10px] text-emerald-400">
+                <span class="bg-gray-800 px-1.5 py-0.5 rounded">{{research_question}}</span>
+                <span class="bg-gray-800 px-1.5 py-0.5 rounded">{{reference_country}}</span>
+                <span class="bg-gray-800 px-1.5 py-0.5 rounded">{{target_countries}}</span>
+                <span class="bg-gray-800 px-1.5 py-0.5 rounded">{{time_horizon}}</span>
+                <span class="bg-gray-800 px-1.5 py-0.5 rounded">{{evidence}}</span>
+                <span class="bg-gray-800 px-1.5 py-0.5 rounded">{{assigned_task}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-gray-800 pt-3">
+          <button onclick="resetCurrentModalAgent()" class="w-full sm:w-auto px-3 py-1.5 rounded bg-gray-900 hover:bg-rose-950/60 border border-gray-800 hover:border-rose-800 text-xs text-gray-300 hover:text-rose-300 transition">
+            🔄 استعادة التعليمات والنموذج الافتراضي
+          </button>
+          <div class="flex gap-2 w-full sm:w-auto justify-end">
+            <button onclick="closeAgentModal()" class="px-3 py-1.5 rounded bg-gray-800 hover:bg-gray-700 text-xs text-gray-300">
+              إلغاء
+            </button>
+            <button onclick="saveCurrentModalAgent()" id="btn-save-agent" class="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white shadow-lg shadow-emerald-900/40">
+              💾 حفظ التعديلات
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </main>
 
@@ -434,6 +534,15 @@
           document.getElementById('llm-status-pill').className = data.llm_mode.includes('live')
             ? "text-xs font-mono px-2.5 py-1 rounded bg-emerald-950 border border-emerald-700 text-emerald-300"
             : "text-xs font-mono px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-300";
+
+          const osPill = document.getElementById('osiris-status-pill');
+          if (data.osiris_upstream && data.osiris_upstream.status === 'online') {
+            osPill.textContent = "OSIRIS: Online (Live Feed)";
+            osPill.className = "text-xs font-mono px-2.5 py-1 rounded bg-cyan-950 border border-cyan-700 text-cyan-300";
+          } else {
+            osPill.textContent = "OSIRIS: Standalone";
+            osPill.className = "text-xs font-mono px-2.5 py-1 rounded bg-gray-800 border border-gray-700 text-gray-400";
+          }
         }
       } catch (e) {
         console.error("Health check failed", e);
@@ -675,27 +784,192 @@
       `).join('');
     }
 
+    let currentModalAgentId = null;
+
     async function loadAgents() {
-      const res = await fetch('/api/agents');
-      const data = await res.json();
-      const container = document.getElementById('agents-grid-container');
-      container.innerHTML = data.map(ag => `
-        <div class="glass-panel rounded-xl p-4 border border-gray-800 flex flex-col justify-between">
-          <div>
-            <div class="flex justify-between items-center mb-2">
-              <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">${ag.id}</span>
-              <span class="text-[10px] text-gray-500 font-mono">${ag.default_model.split('/')[1] || ag.default_model}</span>
+      try {
+        const res = await fetch('/api/agents');
+        const data = await res.json();
+        const container = document.getElementById('agents-grid-container');
+        
+        let customCount = 0;
+        container.innerHTML = data.map(ag => {
+          if (ag.is_customized) customCount++;
+          const shortModel = ag.default_model.split('/')[1] || ag.default_model;
+          return `
+            <div class="glass-panel rounded-xl p-4 border ${ag.is_customized ? 'border-amber-700/60 bg-amber-950/10' : 'border-gray-800'} flex flex-col justify-between transition hover:border-gray-700">
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <div class="flex items-center gap-1.5">
+                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">${ag.id}</span>
+                    ${ag.is_customized ? '<span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-900/60 text-amber-300 border border-amber-700">✨ مخصص</span>' : ''}
+                  </div>
+                  <span class="text-[10px] text-gray-400 font-mono px-1.5 py-0.5 rounded bg-gray-900 border border-gray-800" title="${ag.default_model}">
+                    🤖 ${shortModel}
+                  </span>
+                </div>
+                <h4 class="font-bold text-sm text-gray-100">${ag.name_ar}</h4>
+                <span class="text-[11px] text-gray-400 block mb-2">${ag.name_en}</span>
+                <p class="text-xs text-gray-300 leading-relaxed mb-3">${ag.role_description_ar}</p>
+              </div>
+
+              <div>
+                <div class="mt-2 pt-2 border-t border-gray-800 flex justify-between items-center text-[11px] text-gray-400 font-mono">
+                  <span>حرارة: ${ag.temperature}</span>
+                  <span class="${ag.is_active ? 'text-emerald-400' : 'text-gray-500'}">● ${ag.is_active ? 'نشط' : 'معطل'}</span>
+                </div>
+                <button onclick="openAgentModal('${ag.id}')" class="w-full mt-3 py-1.5 px-3 rounded bg-gray-900 hover:bg-emerald-950/60 border border-gray-800 hover:border-emerald-700 text-xs font-semibold text-gray-200 hover:text-emerald-300 flex items-center justify-center gap-1.5 transition">
+                  <span>⚙️ تعديل النموذج والبرومبت</span>
+                </button>
+              </div>
             </div>
-            <h4 class="font-bold text-sm text-gray-100">${ag.name_ar}</h4>
-            <span class="text-[11px] text-gray-400 block mb-2">${ag.name_en}</span>
-            <p class="text-xs text-gray-300 leading-relaxed">${ag.role_description_ar}</p>
-          </div>
-          <div class="mt-3 pt-2 border-t border-gray-800 flex justify-between text-[11px] text-gray-500 font-mono">
-            <span>Temp: ${ag.temperature}</span>
-            <span class="text-emerald-500">● نشط</span>
-          </div>
-        </div>
-      `).join('');
+          `;
+        }).join('');
+
+        const countBadge = document.getElementById('agents-custom-count');
+        if (countBadge) {
+          countBadge.textContent = `${customCount} مخصص`;
+        }
+      } catch (e) {
+        console.error("Failed to load agents", e);
+      }
+    }
+
+    async function openAgentModal(agentId) {
+      currentModalAgentId = agentId;
+      try {
+        const res = await fetch(`/api/agents/${agentId}`);
+        if (!res.ok) throw new Error("فشل في تحميل بيانات الوكيل");
+        const data = await res.json();
+        
+        document.getElementById('modal-agent-id').textContent = data.metadata.id;
+        document.getElementById('modal-agent-name-ar').textContent = data.metadata.name_ar;
+        document.getElementById('modal-agent-name-en').textContent = data.metadata.name_en;
+        
+        const select = document.getElementById('modal-select-model');
+        const customInput = document.getElementById('modal-custom-model');
+        const currentModel = data.metadata.default_model;
+        
+        let foundPreset = false;
+        for (let i = 0; i < select.options.length; i++) {
+          if (select.options[i].value === currentModel) {
+            select.selectedIndex = i;
+            foundPreset = true;
+            break;
+          }
+        }
+        if (!foundPreset) {
+          select.value = "__CUSTOM__";
+          customInput.classList.remove('hidden');
+          customInput.value = currentModel;
+        } else {
+          customInput.classList.add('hidden');
+          customInput.value = currentModel;
+        }
+
+        document.getElementById('modal-temperature').value = data.metadata.temperature;
+        document.getElementById('modal-temp-val').textContent = data.metadata.temperature;
+        document.getElementById('modal-is-active').checked = data.metadata.is_active;
+        document.getElementById('modal-system-prompt').value = data.system_prompt;
+        
+        const badge = document.getElementById('modal-custom-badge');
+        if (data.is_customized) {
+          badge.textContent = "✨ مخصص حالياً";
+          badge.className = "text-[10px] px-2 py-0.5 rounded bg-amber-900/60 text-amber-300 border border-amber-700 font-bold";
+        } else {
+          badge.textContent = "المستوى الافتراضي";
+          badge.className = "text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400";
+        }
+
+        document.getElementById('agent-edit-modal').classList.remove('hidden');
+      } catch (e) {
+        alert("خطأ: " + e.message);
+      }
+    }
+
+    function onModelPresetChange(val) {
+      const customInput = document.getElementById('modal-custom-model');
+      if (val === '__CUSTOM__') {
+        customInput.classList.remove('hidden');
+        customInput.focus();
+      } else {
+        customInput.classList.add('hidden');
+        customInput.value = val;
+      }
+    }
+
+    function closeAgentModal() {
+      document.getElementById('agent-edit-modal').classList.add('hidden');
+      currentModalAgentId = null;
+    }
+
+    async function saveCurrentModalAgent() {
+      if (!currentModalAgentId) return;
+      const select = document.getElementById('modal-select-model');
+      const customInput = document.getElementById('modal-custom-model');
+      const model = select.value === '__CUSTOM__' ? customInput.value.trim() : select.value;
+      
+      if (!model) {
+        alert("يرجى تحديد أو إدخال معرف النموذج (Model ID).");
+        return;
+      }
+
+      const temp = parseFloat(document.getElementById('modal-temperature').value);
+      const isActive = document.getElementById('modal-is-active').checked;
+      const prompt = document.getElementById('modal-system-prompt').value.trim();
+
+      const btn = document.getElementById('btn-save-agent');
+      btn.textContent = "جاري الحفظ...";
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`/api/agents/${currentModalAgentId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            default_model: model,
+            temperature: temp,
+            is_active: isActive,
+            system_prompt: prompt
+          })
+        });
+
+        if (!res.ok) throw new Error("تعذر حفظ تعديلات الوكيل");
+        
+        closeAgentModal();
+        loadAgents();
+      } catch (e) {
+        alert("فشل الحفظ: " + e.message);
+      } finally {
+        btn.textContent = "💾 حفظ التعديلات";
+        btn.disabled = false;
+      }
+    }
+
+    async function resetCurrentModalAgent() {
+      if (!currentModalAgentId) return;
+      if (!confirm(`هل أنت متأكد من استعادة النموذج والتعليمات الافتراضية للوكيل (${currentModalAgentId})؟`)) return;
+
+      try {
+        const res = await fetch(`/api/agents/${currentModalAgentId}/reset`, { method: 'POST' });
+        if (!res.ok) throw new Error("تعذر استعادة الضبط الافتراضي");
+        
+        await openAgentModal(currentModalAgentId);
+        loadAgents();
+      } catch (e) {
+        alert("خطأ: " + e.message);
+      }
+    }
+
+    async function resetAllAgents() {
+      if (!confirm("هل أنت متأكد من استعادة الضبط المصنعي الافتراضي لجميع الوكلاء الـ 14؟ سيتم إلغاء كافة التخصيصات.")) return;
+      try {
+        const res = await fetch('/api/agents/reset-all', { method: 'POST' });
+        if (!res.ok) throw new Error("تعذر استعادة ضبط جميع الوكلاء");
+        loadAgents();
+      } catch (e) {
+        alert("خطأ: " + e.message);
+      }
     }
 
     function toggleLang() {

@@ -2,8 +2,23 @@
 Contains the official 14 specialized agent personas and system instructions
 established in the architecture design.
 """
-from typing import Dict, List, Optional
-from packages.schemas.models import AgentID, AgentDefinition
+from __future__ import annotations
+
+import copy
+import json
+import logging
+import os
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from packages.schemas.models import (
+    AgentID,
+    AgentDefinition,
+    AgentUpdateRequest,
+    AgentDetailResponse,
+    RECOMMENDED_MODELS,
+)
+
+log = logging.getLogger("strategic_osiris.prompts")
 
 COMMON_RULES_AR = """أنت عضو في منظومة OSIRIS للتحليل الاستراتيجي والاستخبارات مفتوحة المصدر، وتعمل ضمن فريق متعدد التخصصات لدعم متخذ القرار ومكتب الملحق العسكري.
 
@@ -324,6 +339,216 @@ AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
     ),
 }
 
+DEFAULT_COMMON_RULES_AR: str = COMMON_RULES_AR
+DEFAULT_AGENT_PROMPTS_AR: Dict[AgentID, str] = dict(AGENT_PROMPTS_AR)
+DEFAULT_AGENT_REGISTRY: Dict[AgentID, AgentDefinition] = {
+    k: v.model_copy(deep=True) for k, v in AGENT_REGISTRY.items()
+}
+
+
+class AgentConfigManager:
+    """Manages active prompt instructions, model routing, and agent definitions
+    with runtime customization and persistent storage to config/agents_config.json.
+    """
+
+    def __init__(self, config_path: Optional[str] = None):
+        if config_path:
+            self.config_path = Path(config_path)
+        else:
+            root_dir = Path(__file__).resolve().parent.parent.parent
+            self.config_path = root_dir / "config" / "agents_config.json"
+
+        self.common_rules = DEFAULT_COMMON_RULES_AR
+        self.prompts: Dict[AgentID, str] = dict(DEFAULT_AGENT_PROMPTS_AR)
+        self.agents: Dict[AgentID, AgentDefinition] = {
+            k: v.model_copy(deep=True) for k, v in DEFAULT_AGENT_REGISTRY.items()
+        }
+        self.load()
+
+    def load(self) -> None:
+        """Load customizations from disk if configuration file exists."""
+        if not self.config_path.exists():
+            return
+
+        try:
+            with open(self.config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            if "common_rules" in data and isinstance(data["common_rules"], str):
+                self.common_rules = data["common_rules"]
+
+            agents_data = data.get("agents", {})
+            for aid_str, custom in agents_data.items():
+                try:
+                    aid = AgentID(aid_str)
+                except ValueError:
+                    continue
+
+                if aid in self.agents:
+                    curr = self.agents[aid]
+                    if "default_model" in custom and custom["default_model"]:
+                        curr.default_model = custom["default_model"]
+                    if "temperature" in custom and custom["temperature"] is not None:
+                        curr.temperature = float(custom["temperature"])
+                    if "is_active" in custom and custom["is_active"] is not None:
+                        curr.is_active = bool(custom["is_active"])
+                    if "role_description_ar" in custom and custom["role_description_ar"]:
+                        curr.role_description_ar = custom["role_description_ar"]
+                    if "role_description_en" in custom and custom["role_description_en"]:
+                        curr.role_description_en = custom["role_description_en"]
+                    if "system_prompt" in custom and custom["system_prompt"]:
+                        self.prompts[aid] = custom["system_prompt"]
+
+                    default_def = DEFAULT_AGENT_REGISTRY.get(aid)
+                    is_custom = False
+                    if default_def:
+                        is_custom = (
+                            self.prompts.get(aid) != DEFAULT_AGENT_PROMPTS_AR.get(aid)
+                            or curr.default_model != default_def.default_model
+                            or abs(curr.temperature - default_def.temperature) > 1e-4
+                            or curr.role_description_ar != default_def.role_description_ar
+                            or curr.role_description_en != default_def.role_description_en
+                            or curr.is_active != default_def.is_active
+                        )
+                    curr.is_customized = is_custom
+
+            log.info("Loaded agent configurations and prompts from %s", self.config_path)
+        except Exception as e:
+            log.warning("Failed to load agent config from %s: %s", self.config_path, e)
+
+    def save(self) -> None:
+        """Persist current customizations to disk."""
+        try:
+            self.config_path.parent.mkdir(parents=True, exist_ok=True)
+            export_data: Dict[str, Any] = {
+                "common_rules": self.common_rules,
+                "agents": {}
+            }
+            for aid, agent in self.agents.items():
+                default_def = DEFAULT_AGENT_REGISTRY[aid]
+                is_custom = (
+                    self.prompts.get(aid) != DEFAULT_AGENT_PROMPTS_AR.get(aid)
+                    or agent.default_model != default_def.default_model
+                    or abs(agent.temperature - default_def.temperature) > 1e-4
+                    or agent.role_description_ar != default_def.role_description_ar
+                    or agent.role_description_en != default_def.role_description_en
+                    or agent.is_active != default_def.is_active
+                )
+                agent.is_customized = is_custom
+                export_data["agents"][aid.value] = {
+                    "default_model": agent.default_model,
+                    "temperature": agent.temperature,
+                    "is_active": agent.is_active,
+                    "role_description_ar": agent.role_description_ar,
+                    "role_description_en": agent.role_description_en,
+                    "system_prompt": self.prompts.get(aid, ""),
+                    "is_customized": is_custom
+                }
+
+            with open(self.config_path, "w", encoding="utf-8") as f:
+                json.dump(export_data, f, ensure_ascii=False, indent=2)
+            log.info("Saved agent configurations to %s", self.config_path)
+        except Exception as e:
+            log.error("Failed to save agent config to %s: %s", self.config_path, e)
+
+    def get_agent(self, agent_id: AgentID) -> Optional[AgentDefinition]:
+        return self.agents.get(agent_id)
+
+    def list_agents(self) -> List[AgentDefinition]:
+        return list(self.agents.values())
+
+    def get_prompt(self, agent_id: AgentID) -> str:
+        return self.prompts.get(agent_id, DEFAULT_AGENT_PROMPTS_AR.get(agent_id, ""))
+
+    def get_default_prompt(self, agent_id: AgentID) -> str:
+        return DEFAULT_AGENT_PROMPTS_AR.get(agent_id, "")
+
+    def get_default_agent(self, agent_id: AgentID) -> Optional[AgentDefinition]:
+        default = DEFAULT_AGENT_REGISTRY.get(agent_id)
+        return default.model_copy(deep=True) if default else None
+
+    def update_agent(self, agent_id: AgentID, update: AgentUpdateRequest) -> AgentDefinition:
+        if agent_id not in self.agents:
+            raise KeyError(f"Agent {agent_id} not found")
+
+        agent = self.agents[agent_id]
+        if update.default_model is not None:
+            agent.default_model = update.default_model.strip()
+        if update.temperature is not None:
+            agent.temperature = update.temperature
+        if update.is_active is not None:
+            agent.is_active = update.is_active
+        if update.role_description_ar is not None:
+            agent.role_description_ar = update.role_description_ar.strip()
+        if update.role_description_en is not None:
+            agent.role_description_en = update.role_description_en.strip()
+        if update.system_prompt is not None:
+            self.prompts[agent_id] = update.system_prompt.strip()
+
+        default_def = DEFAULT_AGENT_REGISTRY[agent_id]
+        is_custom = (
+            self.prompts[agent_id] != DEFAULT_AGENT_PROMPTS_AR.get(agent_id)
+            or agent.default_model != default_def.default_model
+            or abs(agent.temperature - default_def.temperature) > 1e-4
+            or agent.role_description_ar != default_def.role_description_ar
+            or agent.role_description_en != default_def.role_description_en
+            or agent.is_active != default_def.is_active
+        )
+        agent.is_customized = is_custom
+        self.save()
+        return agent
+
+    def reset_agent(self, agent_id: AgentID) -> AgentDefinition:
+        if agent_id not in DEFAULT_AGENT_REGISTRY:
+            raise KeyError(f"Agent {agent_id} not found")
+
+        default_def = DEFAULT_AGENT_REGISTRY[agent_id].model_copy(deep=True)
+        default_def.is_customized = False
+        self.agents[agent_id] = default_def
+        self.prompts[agent_id] = DEFAULT_AGENT_PROMPTS_AR.get(agent_id, "")
+        self.save()
+        return default_def
+
+    def reset_all(self) -> List[AgentDefinition]:
+        self.common_rules = DEFAULT_COMMON_RULES_AR
+        self.prompts = dict(DEFAULT_AGENT_PROMPTS_AR)
+        self.agents = {
+            k: v.model_copy(deep=True) for k, v in DEFAULT_AGENT_REGISTRY.items()
+        }
+        for ag in self.agents.values():
+            ag.is_customized = False
+        self.save()
+        return list(self.agents.values())
+
+    def build_system_prompt(
+        self,
+        agent_id: AgentID,
+        research_question: str,
+        reference_country: str = "مصر (جمهورية مصر العربية)",
+        target_countries: Optional[List[str]] = None,
+        time_horizon: str = "6-12 شهراً",
+        evidence_text: str = "لا توجد أدلة إضافية مسجلة بعد.",
+        assigned_task: str = "تحليل الأبعاد الاستراتيجية المتعلقة بسؤال البحث."
+    ) -> str:
+        target_str = ", ".join(target_countries) if target_countries else "مصر، ليبيا، إسرائيل ومحيط البحر الأحمر وشرق المتوسط"
+
+        context = self.common_rules
+        context = context.replace("{{research_question}}", research_question)
+        context = context.replace("{{reference_country}}", reference_country)
+        context = context.replace("{{target_countries}}", target_str)
+        context = context.replace("{{time_horizon}}", time_horizon)
+        context = context.replace("{{evidence}}", evidence_text)
+        context = context.replace("{{assigned_task}}", assigned_task)
+
+        specific_prompt = self.get_prompt(agent_id)
+        return f"{context}\n\n=== تعليمات الوكيل التخصصية ===\n{specific_prompt}"
+
+
+# Initialize global manager and keep module-level exports backward-compatible
+agent_config_manager = AgentConfigManager()
+AGENT_REGISTRY = agent_config_manager.agents
+AGENT_PROMPTS_AR = agent_config_manager.prompts
+
 
 def build_system_prompt(
     agent_id: AgentID,
@@ -335,15 +560,12 @@ def build_system_prompt(
     assigned_task: str = "تحليل الأبعاد الاستراتيجية المتعلقة بسؤال البحث."
 ) -> str:
     """Build a rendered system prompt for a specific agent with contextual parameters."""
-    target_str = ", ".join(target_countries) if target_countries else "مصر، ليبيا، إسرائيل ومحيط البحر الأحمر وشرق المتوسط"
-    
-    context = COMMON_RULES_AR
-    context = context.replace("{{research_question}}", research_question)
-    context = context.replace("{{reference_country}}", reference_country)
-    context = context.replace("{{target_countries}}", target_str)
-    context = context.replace("{{time_horizon}}", time_horizon)
-    context = context.replace("{{evidence}}", evidence_text)
-    context = context.replace("{{assigned_task}}", assigned_task)
-    
-    specific_prompt = AGENT_PROMPTS_AR.get(agent_id, "")
-    return f"{context}\n\n=== تعليمات الوكيل التخصصية ===\n{specific_prompt}"
+    return agent_config_manager.build_system_prompt(
+        agent_id=agent_id,
+        research_question=research_question,
+        reference_country=reference_country,
+        target_countries=target_countries,
+        time_horizon=time_horizon,
+        evidence_text=evidence_text,
+        assigned_task=assigned_task
+    )

@@ -71,30 +71,48 @@ DEFAULT_EVIDENCES: List[Dict[str, Any]] = [
 
 class OsirisClient:
     def __init__(self, base_url: Optional[str] = None):
-        self.base_url = base_url or os.environ.get("OSIRIS_URL", "http://localhost:3000")
+        self.base_url = (base_url or os.environ.get("OSIRIS_URL", "https://agent.gorbit.space")).rstrip("/")
 
-    async def fetch_events(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """Fetch raw events from OSIRIS directly if available, otherwise return baseline events."""
-        try:
-            async with httpx.AsyncClient(timeout=4.0) as client:
-                res = await client.get(f"{self.base_url}/api/events?limit={limit}")
-                if res.status_code == 200:
-                    data = res.json()
-                    log.info("Fetched %d events from live OSIRIS instance", len(data))
-                    return data
-        except Exception as e:
-            log.debug("OSIRIS not reachable at %s: %s; using baseline fixtures", self.base_url, str(e))
-        return DEFAULT_EVIDENCES
+    async def check_health(self) -> Dict[str, Any]:
+        """Check status of live OSIRIS instance."""
+        for verify in (True, False):
+            try:
+                async with httpx.AsyncClient(timeout=5.0, verify=verify) as client:
+                    res = await client.get(f"{self.base_url}/api/health")
+                    if res.status_code == 200:
+                        return {"status": "online", "url": self.base_url, "data": res.json()}
+            except Exception as e:
+                if verify:
+                    continue
+                return {"status": "offline", "url": self.base_url, "error": str(e)}
+        return {"status": "offline", "url": self.base_url}
+
+    async def fetch_news(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Fetch raw live news & event intelligence from OSIRIS."""
+        for verify in (True, False):
+            try:
+                async with httpx.AsyncClient(timeout=8.0, verify=verify) as client:
+                    res = await client.get(f"{self.base_url}/api/news")
+                    if res.status_code == 200:
+                        data = res.json()
+                        items = data.get("news", [])
+                        log.info("Ingested %d live items from OSIRIS API (%s)", len(items), self.base_url)
+                        return items[:limit]
+            except Exception as e:
+                if verify:
+                    continue
+                log.warning("Could not reach OSIRIS at %s: %s", self.base_url, str(e))
+        return []
 
     async def fetch_brief(self) -> Dict[str, Any]:
-        """Fetch world brief from OSIRIS if live."""
-        try:
-            async with httpx.AsyncClient(timeout=4.0) as client:
-                res = await client.get(f"{self.base_url}/api/brief")
-                if res.status_code == 200:
-                    return res.json()
-        except Exception:
-            pass
+        """Fetch world brief or headline summary from OSIRIS."""
+        news = await self.fetch_news(limit=5)
+        if news:
+            top_headlines = [f"• {item.get('title', '')}" for item in news[:3]]
+            return {
+                "headline": news[0].get("title", ""),
+                "text": "\n".join(top_headlines)
+            }
         return {
             "headline": "المشهد الاستراتيجي لمنطقة الشرق الأوسط وشمال إفريقيا",
             "text": "استمرار التوترات في الممرات البحرية بالبحر الأحمر والحدود الإقليمية، مع يقظة دفاعية مصرية شاملة."
@@ -126,17 +144,64 @@ class EvidenceCollector:
         research_question: str,
         target_countries: List[str]
     ) -> List[DocumentEvidence]:
-        """Collect and filter evidence matching target countries and research keywords."""
-        raw = await self.client.fetch_events(limit=50)
-        results: List[DocumentEvidence] = list(self.store.values())
-        
-        # Filter relevant to target countries
+        """Collect and filter evidence from both live OSIRIS feeds and strategic defense baselines."""
+        # 1. Fetch live news items from OSIRIS
+        osiris_news = await self.client.fetch_news(limit=40)
+        for idx, item in enumerate(osiris_news):
+            doc_id = f"EVD-OSI-{idx+1:03d}"
+            title = item.get("title", "")
+            snippet = item.get("summary") or item.get("description", "")
+            source_name = f"OSIRIS / {item.get('source_name', 'Live Feed')}"
+            link = item.get("link")
+            
+            # Extract mentioned countries safely
+            coords_str = str(item.get("coords_anchor") or "")
+            place_dict = item.get("place") or {}
+            place_name = str(place_dict.get("name") or "")
+            combined_text = f"{title} {snippet} {coords_str} {place_name}".lower()
+            detected_countries = []
+            if any(k in combined_text for k in ("egypt", "cairo", "suez", "sinai", "مصر")):
+                detected_countries.append("Egypt")
+            if any(k in combined_text for k in ("libya", "tripoli", "benghazi", "ليبيا")):
+                detected_countries.append("Libya")
+            if any(k in combined_text for k in ("israel", "tel aviv", "gaza", "palestin", "إسرائيل", "غزة")):
+                detected_countries.append("Israel")
+            if any(k in combined_text for k in ("red sea", "yemen", "houthi", "bab el-mandeb", "البحر الأحمر")):
+                detected_countries.append("Red Sea")
+            if any(k in combined_text for k in ("mediterranean", "east med", "المتوسط")):
+                detected_countries.append("East Med")
+            if not detected_countries:
+                detected_countries.append("Regional")
+
+            tags = item.get("risk_keywords", []) + [item.get("alert_kind", "osint")]
+
+            doc = DocumentEvidence(
+                id=doc_id,
+                source_id=f"OSIRIS-{item.get('id', idx)[:8]}",
+                source_name=source_name,
+                title=title,
+                url=link,
+                content_snippet=snippet[:400],
+                reliability=AdmiraltyReliability.B,
+                credibility=AdmiraltyCredibility.TWO,
+                countries_mentioned=detected_countries,
+                tags=tags,
+                published_at=datetime.now(timezone.utc)
+            )
+            self.store[doc.id] = doc
+
+        # 2. Filter store by relevance to target countries
         country_set = {c.lower() for c in target_countries}
+        results = list(self.store.values())
         relevant = [
             doc for doc in results
-            if any(c.lower() in country_set for c in doc.countries_mentioned) or not country_set
+            if any(c.lower() in country_set for c in doc.countries_mentioned)
         ]
-        return relevant if relevant else results
+        
+        # Always return at least 5 rich evidence items
+        if len(relevant) < 5:
+            return results[:10]
+        return relevant[:15]
 
     def add_evidence(self, doc: DocumentEvidence) -> None:
         self.store[doc.id] = doc

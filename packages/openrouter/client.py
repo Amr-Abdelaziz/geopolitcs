@@ -59,6 +59,13 @@ class OpenRouterClient:
     def get_model_for_agent(self, agent_id: AgentID, override: Optional[str] = None) -> str:
         if override:
             return override
+        try:
+            from packages.prompts.registry import agent_config_manager
+            agent_def = agent_config_manager.get_agent(agent_id)
+            if agent_def and agent_def.default_model:
+                return agent_def.default_model
+        except Exception:
+            pass
         return DEFAULT_TIER_MODELS.get(agent_id, "meta-llama/llama-3.3-70b-instruct")
 
     async def complete(
