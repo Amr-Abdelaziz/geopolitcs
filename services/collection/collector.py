@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 import httpx
 from packages.schemas.models import AdmiraltyCredibility, AdmiraltyReliability, DocumentEvidence, utc_now
+from services.collection.web_search import WebSearchClient
 
 log = logging.getLogger("strategic_osiris.collection")
 
@@ -120,8 +121,13 @@ class OsirisClient:
 
 
 class EvidenceCollector:
-    def __init__(self, osiris_client: Optional[OsirisClient] = None):
+    def __init__(
+        self,
+        osiris_client: Optional[OsirisClient] = None,
+        web_search_client: Optional[WebSearchClient] = None
+    ):
         self.client = osiris_client or OsirisClient()
+        self.web_search = web_search_client or WebSearchClient()
         self.store: Dict[str, DocumentEvidence] = {}
         # Preload baseline
         for item in DEFAULT_EVIDENCES:
@@ -144,7 +150,7 @@ class EvidenceCollector:
         research_question: str,
         target_countries: List[str]
     ) -> List[DocumentEvidence]:
-        """Collect and filter evidence from both live OSIRIS feeds and strategic defense baselines."""
+        """Collect and filter evidence from live OSIRIS feeds, real-time web search, and strategic defense baselines."""
         # 1. Fetch live news items from OSIRIS
         osiris_news = await self.client.fetch_news(limit=40)
         for idx, item in enumerate(osiris_news):
@@ -190,7 +196,22 @@ class EvidenceCollector:
             )
             self.store[doc.id] = doc
 
-        # 2. Filter store by relevance to target countries
+        # 2. Execute live open-source web search on the research topic
+        search_query = " ".join(research_question.split()[:10])
+        try:
+            web_docs = await self.web_search.search_as_evidence(
+                query=search_query,
+                target_countries=target_countries,
+                max_results=5
+            )
+            for wdoc in web_docs:
+                self.store[wdoc.id] = wdoc
+            if web_docs:
+                log.info("Ingested %d live web search evidence items for query '%s'", len(web_docs), search_query)
+        except Exception as e:
+            log.warning("Live web search collection failed gracefully: %s", e)
+
+        # 3. Filter store by relevance to target countries
         country_set = {c.lower() for c in target_countries}
         results = list(self.store.values())
         relevant = [
@@ -200,8 +221,8 @@ class EvidenceCollector:
         
         # Always return at least 5 rich evidence items
         if len(relevant) < 5:
-            return results[:10]
-        return relevant[:15]
+            return results[:12]
+        return relevant[:18]
 
     def add_evidence(self, doc: DocumentEvidence) -> None:
         self.store[doc.id] = doc

@@ -9,3 +9,4 @@ jinja2==3.1.6
 aiosqlite==0.22.1
 pyyaml==6.0.3
 truststore==0.10.5
+duckduckgo-search>=8.1.1

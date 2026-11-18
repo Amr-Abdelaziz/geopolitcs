@@ -283,7 +283,16 @@ async def trigger_radar_cycle() -> Dict[str, Any]:
     return await radar_daemon.run_cycle()
 
 
-# --- Evidence Store ---
+# --- Evidence Store & Web Search ---
+
+@app.get("/api/search", response_model=List[DocumentEvidence])
+async def search_live_web(
+    q: str = Query(..., min_length=2, description="Search query"),
+    limit: int = Query(5, ge=1, le=15)
+) -> List[DocumentEvidence]:
+    """Execute live open-source web search and return structured evidence items."""
+    return await pipeline.collector.web_search.search_as_evidence(query=q, max_results=limit)
+
 
 @app.get("/api/evidence", response_model=List[DocumentEvidence])
 async def list_evidence() -> List[DocumentEvidence]:

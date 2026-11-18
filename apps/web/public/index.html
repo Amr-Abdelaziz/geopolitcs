@@ -409,10 +409,26 @@
 
     <!-- TAB 3: EVIDENCE BANK -->
     <section id="tab-evidence-bank" class="hidden space-y-6">
-      <div>
-        <h2 class="text-base font-bold text-white">بنك الأدلة والمصادر المفتوحة (OSINT & Evidence Repository)</h2>
-        <p class="text-xs text-gray-400">نظام توثيق الوقائع وفق كود Admiralty القياسي (A-F موثوقية، 1-6 مصداقية)</p>
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-white">بنك الأدلة والمصادر المفتوحة وبحث الويب الحي (OSINT & Live Web Search)</h2>
+          <p class="text-xs text-gray-400">توثيق وقائع OSIRIS وبحث الويب المباشر وفق كود Admiralty القياسي (A-F موثوقية، 1-6 مصداقية)</p>
+        </div>
       </div>
+
+      <!-- Live Web Search Box -->
+      <div class="glass-panel p-3.5 rounded-xl border border-cyan-900/60 bg-cyan-950/20 flex flex-col sm:flex-row gap-2.5">
+        <input id="input-web-search" type="text" placeholder="ابحث مباشرة في مصادر الأخبار والويب المفتوح (e.g. تحركات الجيش المصري، أمن البحر الأحمر)..." 
+          onkeydown="if(event.key==='Enter') performLiveWebSearch()"
+          class="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-cyan-500 font-medium">
+        <button onclick="performLiveWebSearch()" id="btn-web-search" class="px-4 py-2 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-lg shadow-cyan-950">
+          <span>🌐 بحث الويب المباشر</span>
+        </button>
+        <button onclick="loadEvidence()" class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs">
+          🔄 تحديث القائمة
+        </button>
+      </div>
+
       <div class="glass-panel rounded-xl p-5 border border-osiris-border">
         <div class="space-y-3" id="evidence-list-container">
           <!-- Injected via JS -->
@@ -984,18 +1000,60 @@
     async function loadEvidence() {
       const res = await fetch('/api/evidence');
       const data = await res.json();
+      renderEvidenceItems(data);
+    }
+
+    async function performLiveWebSearch() {
+      const q = document.getElementById('input-web-search').value.trim();
+      if (!q) {
+        alert("يرجى إدخال كلمات البحث المراد الاستعلام عنها.");
+        return;
+      }
+      const btn = document.getElementById('btn-web-search');
+      btn.innerHTML = `<span>⏳ جاري البحث...</span>`;
+      btn.disabled = true;
+
       const container = document.getElementById('evidence-list-container');
-      container.innerHTML = data.map(e => `
-        <div class="p-3.5 rounded-lg bg-gray-900 border border-gray-800 text-xs">
-          <div class="flex justify-between items-center mb-1.5">
+      container.innerHTML = `<div class="p-6 text-center text-xs text-cyan-400 font-mono">🌐 جاري مسح الويب المباشر والأخبار الحية عن: "${q}"...</div>`;
+
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=6`);
+        if (!res.ok) throw new Error("تعذر جلب نتائج البحث");
+        const items = await res.json();
+        if (items.length === 0) {
+          container.innerHTML = `<div class="p-4 text-center text-xs text-gray-500">لم يتم العثور على نتائج مباشرة، جرب كلمات بحث أخرى.</div>`;
+        } else {
+          renderEvidenceItems(items);
+        }
+      } catch (e) {
+        alert("فشل بحث الويب: " + e.message);
+        loadEvidence();
+      } finally {
+        btn.innerHTML = `<span>🌐 بحث الويب المباشر</span>`;
+        btn.disabled = false;
+      }
+    }
+
+    function renderEvidenceItems(data) {
+      const container = document.getElementById('evidence-list-container');
+      if (!data || data.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-xs text-gray-500">لا توجد أدلة مسجلة حالياً.</div>`;
+        return;
+      }
+      container.innerHTML = data.map(e => {
+        const isWeb = e.id.includes('WEB');
+        return `
+        <div class="p-3.5 rounded-lg bg-gray-900 border ${isWeb ? 'border-cyan-800/80 bg-cyan-950/10' : 'border-gray-800'} text-xs transition hover:border-gray-700">
+          <div class="flex justify-between items-center mb-1.5 flex-wrap gap-2">
             <div class="flex items-center gap-2">
-              <span class="font-mono font-bold text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-800">${e.id}</span>
+              <span class="font-mono font-bold ${isWeb ? 'text-cyan-400 bg-cyan-950 border border-cyan-700' : 'text-emerald-400 bg-emerald-950 border border-emerald-800'} px-1.5 py-0.5 rounded text-[11px]">${e.id}</span>
               <span class="font-bold text-gray-200">${e.title}</span>
             </div>
             <div class="flex items-center gap-2 text-gray-400 font-mono text-[11px]">
               <span>Admiralty: <strong class="text-cyan-400">${e.reliability}${e.credibility}</strong></span>
               <span>•</span>
-              <span>${e.source_name}</span>
+              <span class="${isWeb ? 'text-cyan-300 font-medium' : 'text-gray-400'}">${e.source_name}</span>
+              ${e.url ? `<a href="${e.url}" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline font-sans text-[11px]">🔗 المصدر</a>` : ''}
             </div>
           </div>
           <p class="text-gray-300 leading-relaxed mb-2">${e.content_snippet}</p>
@@ -1004,7 +1062,8 @@
             ${e.tags.map(t => `<span class="px-1.5 py-0.2 rounded bg-gray-800/60 text-gray-400">#${t}</span>`).join('')}
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     let currentModalAgentId = null;
